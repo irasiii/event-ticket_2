@@ -1,11 +1,26 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+
+// Category colour map (mirrors EventCard)
+const CATEGORY_COLORS = {
+  Music: ['#7c3aed', '#a78bfa'], Sport: ['#065f46', '#34d399'],
+  Sports: ['#065f46', '#34d399'], Conference: ['#1e40af', '#60a5fa'],
+  Festival: ['#92400e', '#fbbf24'], Theatre: ['#831843', '#f472b6'],
+  Comedy: ['#b45309', '#fcd34d'], Art: ['#0e7490', '#22d3ee'],
+  Food: ['#166534', '#86efac'], default: ['#1F3864', '#2E75B6'],
+};
+function getCategoryColors(name) {
+  const key = Object.keys(CATEGORY_COLORS).find(k => name?.toLowerCase().includes(k.toLowerCase()));
+  return CATEGORY_COLORS[key] || CATEGORY_COLORS.default;
+}
 
 export default function EventDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { addToCart, items } = useCart();
   const navigate = useNavigate();
 
   const [event, setEvent] = useState(null);
@@ -83,6 +98,21 @@ export default function EventDetailPage() {
   });
 
   const statusColors = { published: 'badge-success', draft: 'badge-secondary', cancelled: 'badge-danger' };
+  const [c1, c2] = getCategoryColors(event.category?.name);
+
+  // Cart integration helpers
+  const handleAddToCart = (tier) => {
+    const qty = quantities[tier._id] || 0;
+    if (qty > 0) addToCart(event, tier, qty);
+  };
+  const handleAddAllToCart = () => {
+    (event.ticketTiers || []).forEach(tier => {
+      const qty = quantities[tier._id] || 0;
+      if (qty > 0) addToCart(event, tier, qty);
+    });
+    navigate('/cart');
+  };
+  const cartItemCount = items.filter(i => event.ticketTiers?.some(t => t._id === i.tierId)).reduce((s, i) => s + i.quantity, 0);
 
   return (
     <div>
@@ -91,7 +121,7 @@ export default function EventDetailPage() {
         {event.bannerImage ? (
           <img src={event.bannerImage} alt={event.title} />
         ) : (
-          <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,var(--primary) 0%,var(--primary-mid) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '5rem' }}>
+          <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '5rem' }}>
             {event.category?.icon || '🎫'}
           </div>
         )}
@@ -245,17 +275,27 @@ export default function EventDetailPage() {
 
                               {!user ? (
                                 <div className="alert alert-info">
-                                  Please <a href="/login" style={{ color: 'var(--primary-mid)', fontWeight: 600 }}>login</a> to book tickets.
+                                  Please <Link to="/login" style={{ color: 'var(--primary-mid)', fontWeight: 600 }}>login</Link> to book tickets.
                                 </div>
                               ) : (
-                                <button
-                                  className="btn btn-primary"
-                                  style={{ width: '100%' }}
-                                  onClick={handleBook}
-                                  disabled={bookingLoading || totalTickets === 0}
-                                >
-                                  {bookingLoading ? 'Booking...' : 'Book Now'}
-                                </button>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                  <button
+                                    className="btn btn-primary"
+                                    style={{ width: '100%' }}
+                                    onClick={handleBook}
+                                    disabled={bookingLoading || totalTickets === 0}
+                                  >
+                                    {bookingLoading ? 'Booking...' : '✓ Book Now'}
+                                  </button>
+                                  <button
+                                    className="btn btn-secondary"
+                                    style={{ width: '100%' }}
+                                    onClick={handleAddAllToCart}
+                                    disabled={totalTickets === 0}
+                                  >
+                                    🛒 Add to Cart{cartItemCount > 0 ? ` (${cartItemCount} in cart)` : ''}
+                                  </button>
+                                </div>
                               )}
                             </div>
                           </>
