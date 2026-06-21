@@ -1,0 +1,188 @@
+<mxfile host="app.diagrams.net" modified="2026-06-20T00:00:00.000Z" agent="cowork" version="24.0.0">
+  <diagram id="1. Adapter" name="1. Adapter">
+    <mxGraphModel dx="1100" dy="760" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="n1" value="Adapter — Payment gateways  (patterns/PaymentAdapter.js)" style="text;html=1;fontSize=17;fontStyle=1;align=left;fontColor=#1F4E79;" vertex="1" parent="1"><mxGeometry x="40" y="10" width="800" height="28" as="geometry"/></mxCell>
+        <mxCell id="n2" value="&#171;interface&#187;&lt;br&gt;&lt;b&gt;PaymentGateway&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;+ charge(payment) : Result" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1"><mxGeometry x="450" y="60" width="230" height="70" as="geometry"/></mxCell>
+        <mxCell id="n3" value="&lt;b&gt;StripeAdapter&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;- sdk : StripeSDK&lt;br&gt;&lt;hr size=&quot;1&quot;&gt;&lt;br&gt;+ charge({amount,currency})" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="230" y="210" width="230" height="90" as="geometry"/></mxCell>
+        <mxCell id="n4" value="&lt;b&gt;PayPalAdapter&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;- sdk : PayPalSDK&lt;br&gt;&lt;hr size=&quot;1&quot;&gt;&lt;br&gt;+ charge({amount,currency})" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="680" y="210" width="230" height="90" as="geometry"/></mxCell>
+        <mxCell id="n5" value="&lt;b&gt;StripeSDK&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;+ createCharge(amountCents, currency)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1"><mxGeometry x="230" y="360" width="250" height="70" as="geometry"/></mxCell>
+        <mxCell id="n6" value="&lt;b&gt;PayPalSDK&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;+ makePayment(total, curr)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1"><mxGeometry x="680" y="360" width="250" height="70" as="geometry"/></mxCell>
+        <mxCell id="n7" value="&#171;function&#187;&lt;br&gt;&lt;b&gt;getPaymentGateway(provider)&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;returns a PaymentGateway&lt;br&gt;(&quot;stripe&quot; | &quot;paypal&quot;)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1"><mxGeometry x="455" y="470" width="250" height="80" as="geometry"/></mxCell>
+        <mxCell id="n8" value="implements" style="endArrow=block;endFill=0;dashed=1;html=1;strokeColor=#444444;" edge="1" parent="1" source="n3" target="n2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n9" value="implements" style="endArrow=block;endFill=0;dashed=1;html=1;strokeColor=#444444;" edge="1" parent="1" source="n4" target="n2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n10" value="adapts" style="endArrow=open;startArrow=diamondThin;startFill=0;html=1;strokeColor=#555;fontColor=#555;" edge="1" parent="1" source="n3" target="n5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n11" value="adapts" style="endArrow=open;startArrow=diamondThin;startFill=0;html=1;strokeColor=#555;fontColor=#555;" edge="1" parent="1" source="n4" target="n6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n12" value="creates" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n7" target="n3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n13" value="creates" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n7" target="n4"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="2. Decorator" name="2. Decorator">
+    <mxGraphModel dx="1100" dy="760" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="n1" value="Decorator — Ticket pricing add-ons  (patterns/ticketPricing.js)" style="text;html=1;fontSize=17;fontStyle=1;align=left;fontColor=#1F4E79;" vertex="1" parent="1"><mxGeometry x="40" y="10" width="800" height="28" as="geometry"/></mxCell>
+        <mxCell id="n2" value="&#171;interface&#187;&lt;br&gt;&lt;b&gt;PriceComponent&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;+ price() : number&lt;br&gt;+ describe() : string" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1"><mxGeometry x="440" y="60" width="230" height="80" as="geometry"/></mxCell>
+        <mxCell id="n3" value="&lt;b&gt;BasePrice&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;- amount : number&lt;br&gt;&lt;hr size=&quot;1&quot;&gt;&lt;br&gt;+ price()&lt;br&gt;+ describe()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="150" y="250" width="210" height="110" as="geometry"/></mxCell>
+        <mxCell id="n4" value="&lt;b&gt;PriceDecorator&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;- inner : PriceComponent&lt;br&gt;&lt;hr size=&quot;1&quot;&gt;&lt;br&gt;+ price()&lt;br&gt;+ describe()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="680" y="250" width="230" height="110" as="geometry"/></mxCell>
+        <mxCell id="n5" value="&lt;b&gt;ServiceFeeDecorator&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;- ratePct&lt;br&gt;+ price()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="470" y="470" width="220" height="80" as="geometry"/></mxCell>
+        <mxCell id="n6" value="&lt;b&gt;TicketProtectionDecorator&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;- fee&lt;br&gt;+ price()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="710" y="470" width="230" height="80" as="geometry"/></mxCell>
+        <mxCell id="n7" value="&lt;b&gt;PromoDecorator&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;- discountPct, code&lt;br&gt;+ price()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="950" y="470" width="210" height="80" as="geometry"/></mxCell>
+        <mxCell id="n8" value="implements" style="endArrow=block;endFill=0;dashed=1;html=1;strokeColor=#444444;" edge="1" parent="1" source="n3" target="n2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n9" value="implements" style="endArrow=block;endFill=0;dashed=1;html=1;strokeColor=#444444;" edge="1" parent="1" source="n4" target="n2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n10" value="wraps" style="endArrow=open;startArrow=diamondThin;startFill=0;html=1;strokeColor=#555;fontColor=#555;" edge="1" parent="1" source="n4" target="n2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n11" value="" style="endArrow=block;endFill=0;html=1;strokeColor=#444444;" edge="1" parent="1" source="n5" target="n4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n12" value="" style="endArrow=block;endFill=0;html=1;strokeColor=#444444;" edge="1" parent="1" source="n6" target="n4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n13" value="" style="endArrow=block;endFill=0;html=1;strokeColor=#444444;" edge="1" parent="1" source="n7" target="n4"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="3. Facade" name="3. Facade">
+    <mxGraphModel dx="1100" dy="760" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="n1" value="Facade — Booking flow orchestration  (patterns/BookingFacade.js)" style="text;html=1;fontSize=17;fontStyle=1;align=left;fontColor=#1F4E79;" vertex="1" parent="1"><mxGeometry x="40" y="10" width="800" height="28" as="geometry"/></mxCell>
+        <mxCell id="n2" value="&lt;b&gt;bookingController&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;createBooking()&lt;br&gt;cancelBooking()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1"><mxGeometry x="450" y="60" width="250" height="70" as="geometry"/></mxCell>
+        <mxCell id="n3" value="&#171;facade&#187;&lt;br&gt;&lt;b&gt;BookingFacade&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;+ placeBooking({event,tickets,...})&lt;br&gt;+ cancelBooking({...})&lt;br&gt;+ announceCreated(booking)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="430" y="180" width="300" height="100" as="geometry"/></mxCell>
+        <mxCell id="n4" value="&lt;b&gt;bookingService&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;validateAndPrice()&lt;br&gt;applySeatDeduction()&lt;br&gt;restoreSeats()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1"><mxGeometry x="60" y="360" width="230" height="90" as="geometry"/></mxCell>
+        <mxCell id="n5" value="&lt;b&gt;PaymentAdapter&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;getPaymentGateway()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1"><mxGeometry x="320" y="360" width="210" height="70" as="geometry"/></mxCell>
+        <mxCell id="n6" value="&lt;b&gt;ticketPricing&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;buildPrice()  (Decorator)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1"><mxGeometry x="560" y="360" width="230" height="70" as="geometry"/></mxCell>
+        <mxCell id="n7" value="&lt;b&gt;BookingNotifier&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;bookingNotifier.notify()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1"><mxGeometry x="810" y="360" width="250" height="70" as="geometry"/></mxCell>
+        <mxCell id="n8" value="&lt;b&gt;Logger&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;info() / error()  (Singleton)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1"><mxGeometry x="560" y="470" width="250" height="60" as="geometry"/></mxCell>
+        <mxCell id="n9" value="delegates to" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n2" target="n3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n10" value="" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n3" target="n4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n11" value="" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n3" target="n5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n12" value="" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n3" target="n6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n13" value="" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n3" target="n7"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n14" value="" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n3" target="n8"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n15" value="One simple interface hides validation, pricing, payment, seat updates and notifications." style="shape=note;whiteSpace=wrap;html=1;fontSize=11;align=left;spacingLeft=6;fillColor=#FFFFE0;strokeColor=#D6B656;" vertex="1" parent="1"><mxGeometry x="430" y="560" width="330" height="70" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="4. Factory" name="4. Factory">
+    <mxGraphModel dx="1100" dy="760" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="n1" value="Factory — Domain user creation  (domain/UserFactory.js)" style="text;html=1;fontSize=17;fontStyle=1;align=left;fontColor=#1F4E79;" vertex="1" parent="1"><mxGeometry x="40" y="10" width="800" height="28" as="geometry"/></mxCell>
+        <mxCell id="n2" value="&#171;factory&#187;&lt;br&gt;&lt;b&gt;UserFactory&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;+ static create(data) : User" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1"><mxGeometry x="120" y="230" width="230" height="70" as="geometry"/></mxCell>
+        <mxCell id="n3" value="&#171;abstract&#187;&lt;br&gt;&lt;b&gt;User&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;# id, email, role (private #)&lt;br&gt;+ getPermissions()&lt;br&gt;+ canManageEvents()&lt;br&gt;+ greet(...)&lt;br&gt;+ describe()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1"><mxGeometry x="520" y="50" width="250" height="130" as="geometry"/></mxCell>
+        <mxCell id="n4" value="&lt;b&gt;Admin&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;+ getPermissions()&lt;br&gt;+ canManageEvents()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="430" y="300" width="200" height="80" as="geometry"/></mxCell>
+        <mxCell id="n5" value="&lt;b&gt;Member&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;+ getPermissions()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="660" y="300" width="200" height="80" as="geometry"/></mxCell>
+        <mxCell id="n6" value="&lt;b&gt;Guest&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;(inherits base perms)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="890" y="300" width="200" height="80" as="geometry"/></mxCell>
+        <mxCell id="n7" value="" style="endArrow=block;endFill=0;html=1;strokeColor=#444444;" edge="1" parent="1" source="n4" target="n3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n8" value="" style="endArrow=block;endFill=0;html=1;strokeColor=#444444;" edge="1" parent="1" source="n5" target="n3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n9" value="" style="endArrow=block;endFill=0;html=1;strokeColor=#444444;" edge="1" parent="1" source="n6" target="n3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n10" value="creates" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n2" target="n4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n11" value="creates" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n2" target="n5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n12" value="creates" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n2" target="n6"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="5. Chain of Responsibility" name="5. Chain of Responsibility">
+    <mxGraphModel dx="1100" dy="760" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="n1" value="Middleware / Chain of Responsibility — request pipeline  (middleware + routes)" style="text;html=1;fontSize=17;fontStyle=1;align=left;fontColor=#1F4E79;" vertex="1" parent="1"><mxGeometry x="40" y="10" width="800" height="28" as="geometry"/></mxCell>
+        <mxCell id="n2" value="&lt;b&gt;HTTP Request&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;POST /api/bookings" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1"><mxGeometry x="60" y="220" width="170" height="60" as="geometry"/></mxCell>
+        <mxCell id="n3" value="&lt;b&gt;protect  (auth.js)&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;verify JWT&lt;br&gt;load req.user&lt;br&gt;calls next()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="270" y="200" width="200" height="100" as="geometry"/></mxCell>
+        <mxCell id="n4" value="&lt;b&gt;admin  (admin.js)&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;check role === admin&lt;br&gt;calls next()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="510" y="200" width="200" height="100" as="geometry"/></mxCell>
+        <mxCell id="n5" value="&lt;b&gt;route handler&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;controller action&lt;br&gt;sends response" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1"><mxGeometry x="750" y="200" width="200" height="100" as="geometry"/></mxCell>
+        <mxCell id="n6" value="&lt;b&gt;HTTP Response&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;200 / 4xx" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1"><mxGeometry x="990" y="220" width="150" height="60" as="geometry"/></mxCell>
+        <mxCell id="n7" value="" style="endArrow=open;html=1;strokeColor=#6C8EBF;fontColor=#33597d;rounded=0;" edge="1" parent="1" source="n2" target="n3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n8" value="next()" style="endArrow=open;html=1;strokeColor=#6C8EBF;fontColor=#33597d;rounded=0;" edge="1" parent="1" source="n3" target="n4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n9" value="next()" style="endArrow=open;html=1;strokeColor=#6C8EBF;fontColor=#33597d;rounded=0;" edge="1" parent="1" source="n4" target="n5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n10" value="" style="endArrow=open;html=1;strokeColor=#6C8EBF;fontColor=#33597d;rounded=0;" edge="1" parent="1" source="n5" target="n6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n11" value="Each handler either handles/aborts (401/403) or passes the request to the next handler via next()." style="shape=note;whiteSpace=wrap;html=1;fontSize=11;align=left;spacingLeft=6;fillColor=#FFFFE0;strokeColor=#D6B656;" vertex="1" parent="1"><mxGeometry x="270" y="330" width="420" height="70" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="6. Observer" name="6. Observer">
+    <mxGraphModel dx="1100" dy="760" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="n1" value="Observer — Booking notifications  (patterns/BookingNotifier.js)" style="text;html=1;fontSize=17;fontStyle=1;align=left;fontColor=#1F4E79;" vertex="1" parent="1"><mxGeometry x="40" y="10" width="800" height="28" as="geometry"/></mxCell>
+        <mxCell id="n2" value="&#171;subject&#187;&lt;br&gt;&lt;b&gt;BookingSubject&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;- _observers : Observer[]&lt;br&gt;&lt;hr size=&quot;1&quot;&gt;&lt;br&gt;+ subscribe(o)&lt;br&gt;+ unsubscribe(o)&lt;br&gt;+ notify(type, payload)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="120" y="200" width="250" height="130" as="geometry"/></mxCell>
+        <mxCell id="n3" value="&#171;interface&#187;&lt;br&gt;&lt;b&gt;BookingObserver&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;+ update(eventType, payload)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1"><mxGeometry x="560" y="60" width="250" height="70" as="geometry"/></mxCell>
+        <mxCell id="n4" value="&lt;b&gt;EmailObserver&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;+ update()  -&gt; email stub" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="460" y="290" width="230" height="70" as="geometry"/></mxCell>
+        <mxCell id="n5" value="&lt;b&gt;LoggerObserver&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;+ update()  -&gt; audit log" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="720" y="290" width="230" height="70" as="geometry"/></mxCell>
+        <mxCell id="n6" value="implements" style="endArrow=block;endFill=0;dashed=1;html=1;strokeColor=#444444;" edge="1" parent="1" source="n4" target="n3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n7" value="implements" style="endArrow=block;endFill=0;dashed=1;html=1;strokeColor=#444444;" edge="1" parent="1" source="n5" target="n3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n8" value="notifies *" style="endArrow=open;startArrow=diamondThin;startFill=0;html=1;strokeColor=#555;fontColor=#555;" edge="1" parent="1" source="n2" target="n3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n9" value="bookingController emits booking.created / booking.cancelled; every observer reacts." style="shape=note;whiteSpace=wrap;html=1;fontSize=11;align=left;spacingLeft=6;fillColor=#FFFFE0;strokeColor=#D6B656;" vertex="1" parent="1"><mxGeometry x="120" y="360" width="330" height="70" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="7. Prototype" name="7. Prototype">
+    <mxGraphModel dx="1100" dy="760" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="n1" value="Prototype — Event cloning  (patterns/EventPrototype.js)" style="text;html=1;fontSize=17;fontStyle=1;align=left;fontColor=#1F4E79;" vertex="1" parent="1"><mxGeometry x="40" y="10" width="800" height="28" as="geometry"/></mxCell>
+        <mxCell id="n2" value="&#171;prototype&#187;&lt;br&gt;&lt;b&gt;EventPrototype&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;- template : object&lt;br&gt;&lt;hr size=&quot;1&quot;&gt;&lt;br&gt;+ clone(overrides) : Event" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="150" y="200" width="260" height="100" as="geometry"/></mxCell>
+        <mxCell id="n3" value="&lt;b&gt;Event  (template)&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;title, date, venue, category&lt;br&gt;ticketTiers[], status" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1"><mxGeometry x="600" y="190" width="250" height="90" as="geometry"/></mxCell>
+        <mxCell id="n4" value="&lt;b&gt;Event  (clone)&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;deep copy&lt;br&gt;sold reset to 0&lt;br&gt;status = draft&lt;br&gt;+ overrides" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="600" y="360" width="250" height="110" as="geometry"/></mxCell>
+        <mxCell id="n5" value="copies" style="endArrow=open;startArrow=diamondThin;startFill=0;html=1;strokeColor=#555;fontColor=#555;" edge="1" parent="1" source="n2" target="n3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n6" value="produces" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n2" target="n4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n7" value="Used by eventController.cloneEvent  -&gt;  POST /api/events/:id/clone" style="shape=note;whiteSpace=wrap;html=1;fontSize=11;align=left;spacingLeft=6;fillColor=#FFFFE0;strokeColor=#D6B656;" vertex="1" parent="1"><mxGeometry x="150" y="330" width="360" height="60" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="8. Proxy" name="8. Proxy">
+    <mxGraphModel dx="1100" dy="760" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="n1" value="Proxy — Analytics access control  (patterns/AnalyticsProxy.js)" style="text;html=1;fontSize=17;fontStyle=1;align=left;fontColor=#1F4E79;" vertex="1" parent="1"><mxGeometry x="40" y="10" width="800" height="28" as="geometry"/></mxCell>
+        <mxCell id="n2" value="&#171;interface&#187;&lt;br&gt;&lt;b&gt;AnalyticsService&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;+ getAnalytics(requester)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1"><mxGeometry x="450" y="60" width="250" height="70" as="geometry"/></mxCell>
+        <mxCell id="n3" value="&lt;b&gt;RealAnalyticsService&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;- compute : fn&lt;br&gt;&lt;hr size=&quot;1&quot;&gt;&lt;br&gt;+ getAnalytics()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="220" y="260" width="240" height="100" as="geometry"/></mxCell>
+        <mxCell id="n4" value="&#171;proxy&#187;&lt;br&gt;&lt;b&gt;AnalyticsProxy&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;- real : AnalyticsService&lt;br&gt;&lt;hr size=&quot;1&quot;&gt;&lt;br&gt;+ getAnalytics(requester)&lt;br&gt;  checks role === admin" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="680" y="260" width="260" height="110" as="geometry"/></mxCell>
+        <mxCell id="n5" value="&lt;b&gt;AccessDeniedError&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;status = 403" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#F8CECC;strokeColor=#B85450;" vertex="1" parent="1"><mxGeometry x="700" y="440" width="230" height="60" as="geometry"/></mxCell>
+        <mxCell id="n6" value="&lt;b&gt;adminController.getAnalytics&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;calls proxy" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1"><mxGeometry x="220" y="440" width="250" height="60" as="geometry"/></mxCell>
+        <mxCell id="n7" value="implements" style="endArrow=block;endFill=0;dashed=1;html=1;strokeColor=#444444;" edge="1" parent="1" source="n3" target="n2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n8" value="implements" style="endArrow=block;endFill=0;dashed=1;html=1;strokeColor=#444444;" edge="1" parent="1" source="n4" target="n2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n9" value="delegates to" style="endArrow=open;startArrow=diamondThin;startFill=0;html=1;strokeColor=#555;fontColor=#555;" edge="1" parent="1" source="n4" target="n3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n10" value="throws" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n4" target="n5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n11" value="" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n6" target="n4"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="9. Singleton" name="9. Singleton">
+    <mxGraphModel dx="1100" dy="760" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="n1" value="Singleton — Shared logger  (patterns/Logger.js)" style="text;html=1;fontSize=17;fontStyle=1;align=left;fontColor=#1F4E79;" vertex="1" parent="1"><mxGeometry x="40" y="10" width="800" height="28" as="geometry"/></mxCell>
+        <mxCell id="n2" value="&lt;b&gt;Logger&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;- static _instance : Logger&lt;br&gt;- entries : []&lt;br&gt;- level : string&lt;br&gt;&lt;hr size=&quot;1&quot;&gt;&lt;br&gt;+ log(level, msg, meta)&lt;br&gt;+ info() / warn() / error()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="400" y="150" width="300" height="150" as="geometry"/></mxCell>
+        <mxCell id="n3" value="constructor: if (_instance) return _instance.  module exports a single shared instance, so every require() returns the same object." style="shape=note;whiteSpace=wrap;html=1;fontSize=11;align=left;spacingLeft=6;fillColor=#FFFFE0;strokeColor=#D6B656;" vertex="1" parent="1"><mxGeometry x="400" y="330" width="360" height="90" as="geometry"/></mxCell>
+        <mxCell id="n4" value="_instance" style="endArrow=open;html=1;strokeColor=#555;fontColor=#555;" edge="1" parent="1" source="n2" target="n2"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="10. Strategy" name="10. Strategy">
+    <mxGraphModel dx="1100" dy="760" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="n1" value="Strategy — Cancellation policy  (patterns/cancellationStrategy.js)" style="text;html=1;fontSize=17;fontStyle=1;align=left;fontColor=#1F4E79;" vertex="1" parent="1"><mxGeometry x="40" y="10" width="800" height="28" as="geometry"/></mxCell>
+        <mxCell id="n2" value="&#171;interface&#187;&lt;br&gt;&lt;b&gt;CancellationStrategy&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;+ isCancellationAllowed(event)&lt;br&gt;   : {allowed, reason}" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1"><mxGeometry x="440" y="60" width="270" height="80" as="geometry"/></mxCell>
+        <mxCell id="n3" value="&lt;b&gt;MemberCancellationStrategy&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;- minHoursBefore = 24&lt;br&gt;+ isCancellationAllowed()" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="220" y="260" width="260" height="90" as="geometry"/></mxCell>
+        <mxCell id="n4" value="&lt;b&gt;AdminCancellationStrategy&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;+ isCancellationAllowed()&lt;br&gt;  (always allowed)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1"><mxGeometry x="700" y="260" width="260" height="90" as="geometry"/></mxCell>
+        <mxCell id="n5" value="&#171;function&#187;&lt;br&gt;&lt;b&gt;strategyForRole(role)&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;returns CancellationStrategy" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1"><mxGeometry x="450" y="420" width="250" height="70" as="geometry"/></mxCell>
+        <mxCell id="n6" value="&lt;b&gt;bookingController.cancelBooking&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;picks policy at runtime" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=6;spacingLeft=8;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1"><mxGeometry x="450" y="520" width="260" height="60" as="geometry"/></mxCell>
+        <mxCell id="n7" value="implements" style="endArrow=block;endFill=0;dashed=1;html=1;strokeColor=#444444;" edge="1" parent="1" source="n3" target="n2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n8" value="implements" style="endArrow=block;endFill=0;dashed=1;html=1;strokeColor=#444444;" edge="1" parent="1" source="n4" target="n2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n9" value="creates" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n5" target="n3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n10" value="creates" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n5" target="n4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="n11" value="" style="endArrow=open;dashed=1;html=1;strokeColor=#777777;fontColor=#555;" edge="1" parent="1" source="n6" target="n5"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
