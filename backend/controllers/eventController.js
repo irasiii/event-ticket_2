@@ -1,4 +1,5 @@
 const Event = require('../models/Event');
+const { EventPrototype } = require('../patterns/EventPrototype');   // Prototype
 
 // GET /api/events  — public, paginated
 const getEvents = async (req, res) => {
@@ -75,4 +76,22 @@ const deleteEvent = async (req, res) => {
   }
 };
 
-module.exports = { getEvents, getEventById, createEvent, updateEvent, deleteEvent };
+// POST /api/events/:id/clone  — admin (Prototype pattern)
+// Clone an existing event as a template; sold counts reset and status -> draft.
+const cloneEvent = async (req, res) => {
+  try {
+    const source = await Event.findById(req.params.id);
+    if (!source) return res.status(404).json({ message: 'Event not found' });
+
+    // Prototype — deep-copy the template, apply only the overrides supplied.
+    const overrides = { ...req.body, createdBy: req.user._id };
+    const cloned = new EventPrototype(source).clone(overrides);
+
+    const event = await Event.create(cloned);
+    res.status(201).json({ event });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+module.exports = { getEvents, getEventById, createEvent, updateEvent, deleteEvent, cloneEvent };
