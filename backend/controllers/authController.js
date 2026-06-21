@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const User = require('../models/User');
+const UserFactory = require('../domain/UserFactory');   // Factory + OOP domain layer
 
 const signToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '24h' });
@@ -50,7 +51,10 @@ const login = async (req, res) => {
 
 // GET /api/auth/me
 const getMe = async (req, res) => {
-  res.json({ user: req.user });
+  // Factory builds the correct domain user (Admin/Member/Guest); polymorphic
+  // getPermissions() returns the role-appropriate permission set.
+  const domainUser = UserFactory.create(req.user);
+  res.json({ user: req.user, permissions: domainUser.getPermissions() });
 };
 
 // PUT /api/auth/me
