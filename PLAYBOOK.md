@@ -337,7 +337,83 @@ Goal: copy assignment_2 → a new repo/folder, keep assignment_2 untouched.
 
 ---
 
-## 14. Cheat sheet
+## 14. Live build status (branches → Jira → PR → CI)
+
+Each Jira task has its own branch with its own commit/file. Open a PR per branch into
+`main`; `ci.yml` runs on the PR (tests + build); review and merge; then promote `main` →
+`production`.
+
+### event-ticket_2 (assignment_2) — branches carry the real files
+
+The 3 **code** branches are **stacked** (`oop ⊂ design-patterns ⊂ unit-testing`) so the
+tests have the code they import — otherwise the unit-testing PR would fail CI with
+"Cannot find module". Verified locally: `npm test` → **40 passing**, frontend `npm run build`
+ok, and merging all 6 branches → **0 conflicts**, 40 passing, all modules load.
+
+| Branch | Jira | Commit | Built on | Contents | CI |
+|---|---|---|---|---|---|
+| `feature/oop-principles` | SCRUM-262 | e7f5fb0 | main | `backend/domain/*` + `authController.js` | green (tests skipped) |
+| `feature/design-patterns` | SCRUM-263 | 40aacd3 | oop | `patterns/*` + `services/` + controllers + `eventRoutes.js` | green (tests skipped) |
+| `feature/unit-testing` | SCRUM-264 | 7ac1d08 | design-patterns | `backend/test/*` + `package.json`/lock | green (**runs 40 tests**) |
+| `feature/postman-tests` | SCRUM-265 | bbaf377 | main | `postman/*` | green (tests skipped) |
+| `feature/aws-cicd` | SCRUM-266 | ba00223 | main | `DEPLOYMENT.md`, `arch.png` | green (tests skipped) |
+| `docs/assignment2` | SCRUM-267 | 0902484 | main | reports (`.docx`), diagrams (`.drawio`), screenshots | green (tests skipped) |
+
+> Branches without a `test` script skip the test step (`npm test --if-present`) and pass on
+> the frontend build. Only `feature/unit-testing` runs the 40 tests. **Merge the code
+> branches in order** (oop → design-patterns → unit-testing) so each PR diff is clean.
+
+### event-ticket_3 (assignment_3) — full code on `main`; each branch has a task scaffold
+
+`main` already has the full code + test setup, so CI runs the 40 tests on every PR.
+
+| Branch | Jira | Marker file |
+|---|---|---|
+| `feature/oop-principles` | SCRUM-269 | `docs/tasks/feature_oop-principles.md` |
+| `feature/design-patterns` | SCRUM-271 | `docs/tasks/feature_design-patterns.md` |
+| `feature/unit-testing` | SCRUM-273 | `docs/tasks/feature_unit-testing.md` |
+| `feature/postman-tests` | SCRUM-274 | `docs/tasks/feature_postman-tests.md` |
+| `feature/aws-cicd` | SCRUM-272 | `docs/tasks/feature_aws-cicd.md` |
+| `docs/assignment3` | SCRUM-270 | `docs/tasks/docs_assignment3.md` |
+
+### Finish each task (in the GitHub UI)
+
+1. Move the Jira task **To Do → In Progress**.
+2. Open a **Pull Request**: base = `main`, compare = the feature branch
+   (`https://github.com/irasiii/<repo>/pull/new/<branch>`).
+3. **CI runs** (`ci.yml` → jobs **Backend CI** + **Frontend CI**). Wait for green.
+4. Review the diff, then **Merge pull request**.
+5. Move the Jira task **→ Done**.
+
+Then promote: open a PR base = `production`, compare = `main` → `deploy.yml` posts the
+terraform plan → merge → `redeploy.yml` ships to the App EC2.
+
+### Enforce "no merge without passing tests" (branch protection) — REQUIRED
+
+This makes GitHub **block the Merge button until CI is green**, and re-tests the merge
+against the latest `main` so a merge can never break `main`. Set it once per repo:
+
+1. Open **one** PR first and let `ci.yml` run once — GitHub only lists a check after it has
+   run at least once. (Check names: **Backend CI**, **Frontend CI**.)
+2. Repo → **Settings → Branches → Add branch protection rule** (or **Settings → Rules →
+   Rulesets → New branch ruleset**).
+3. Branch name pattern: `main`.
+4. Tick:
+   - ☑ **Require a pull request before merging** (blocks direct pushes to `main`).
+   - ☑ **Require status checks to pass before merging** → select **Backend CI** and
+     **Frontend CI**.
+   - ☑ **Require branches to be up to date before merging** ← re-runs CI on the merge
+     result, so `main` can't be broken by a stale branch.
+   - ☑ (optional) **Do not allow bypassing the above settings** (include admins).
+5. **Save.** Repeat with pattern `production` to gate deploys.
+
+> **Why the assistant can't toggle this:** branch-protection, PR create/merge, and
+> `workflow_dispatch` all go through `api.github.com`, which is blocked from the sandbox.
+> Branch pushes work; protection + PR + merge + CI are your clicks in the UI.
+
+---
+
+## 15. Cheat sheet
 
 ```bash
 # run locally
@@ -346,7 +422,7 @@ cd frontend && npm run dev
 npm run seed                      # reseed DB
 
 # tests
-cd backend && npm test
+cd backend && npm test            # 40 passing
 npx mocha --grep "Strategy"
 
 # git: new task branch
@@ -354,7 +430,7 @@ git checkout main && git checkout -b feature/<name>
 git add <files> && git commit -m "feat: ..."
 git push -u origin feature/<name>
 
-# PR + merge (gh CLI)
+# PR + merge (gh CLI, if api reachable)
 gh pr create --base main --head feature/<name> --fill
 gh pr merge feature/<name> --merge --delete-branch
 
@@ -370,5 +446,78 @@ terraform destroy                 # when done
 
 ---
 
-*Generated as a personal runbook. Keep this file in the repo root so the whole team can
-follow the same steps.*
+---
+
+## 16. Real API testing on the deployed stack (Newman)
+
+Postman is a desktop GUI — it won't run on a headless EC2. **Newman** is Postman's CLI and
+runs the *same* exported collection. It's wired up two ways:
+
+- **Automatic at boot** — `terraform/user_data/app.sh` installs Newman and runs an initial
+  test after the API starts, writing `~/app/newman-report.html`.
+- **Automatic in CI** — the `smoke-test` job in `redeploy.yml` runs Newman from a GitHub
+  runner against `http://${EC2_APP_HOST}` after every deploy and uploads `newman-report`.
+- **Manual on the app host:**
+  ```bash
+  cd ~/app && bash scripts/run_api_tests.sh           # tests http://localhost:5000
+  # copy the report to your PC:
+  scp -i $key ec2-user@<app-ip>:~/app/newman-report.html .
+  ```
+
+For a guaranteed green run, reseed first so the DB is clean:
+```bash
+cd ~/app && git pull origin main
+cd backend && npm run seed && cd ..
+bash scripts/run_api_tests.sh
+```
+
+### Collection design rules we had to fix (so the run is green)
+- **Order:** Categories + Venues are created **before** Events (Create event needs
+  `categoryId`/`venueId`), and **Bookings run before any deletes** (booking a *cancelled*
+  event returns 400).
+- **Cleanup phase last:** destructive deletes run at the end in order
+  **event → clone event → venue → category** (the Prototype clone is a draft event that
+  also uses the venue, so it must be deleted before the venue, or venue-delete returns 400).
+- **Idempotent register:** the Register request uses `jane.tester+{{$timestamp}}@example.com`
+  so re-runs don't hit "email already in use".
+- **Capture ids:** `List users` saves `userId`; `Clone event` saves `clonedEventId`.
+
+## 17. From-scratch deploy (demolish → rebuild) + every gotcha we hit
+
+### Tear down — DON'T rely on `terraform destroy`
+There is **no S3 backend**, so Terraform state lived only on the Actions runner and is gone
+after apply. A `destroy` run starts with empty state and won't find your resources. Instead:
+- **AWS Console:** terminate both EC2s, then delete their security groups, or
+- **Script:** `python scripts/aws_teardown.py --region us-east-1 --execute`
+  (dry-run first without `--execute`; scoped to the `Project=event-ticketing` tag).
+
+### Rebuild — clean sequence
+1. **Apply:** Actions → *AWS Infrastructure CI/CD* → Run workflow → **Branch = `production`**
+   → `action = apply`. (~5 min. App auto-clones event-ticket_3, seeds, starts API, installs
+   Newman + runs an initial test.)
+2. **Get the new App public IP** from the run summary (it changes every apply).
+3. **Update the `EC2_APP_HOST`** secret to that IP.
+4. **SSH in** and run the real test (see §16). New key each run only if you recreated the
+   key pair.
+5. **Trigger CI deploy + smoke-test:** push `main → production`.
+
+### Gotchas (cause → fix) — keep this list handy
+| Symptom | Cause | Fix |
+|---|---|---|
+| `Could not load credentials from any providers` (Terraform Plan, 4s) | AWS secrets not set **on this repo** (secrets are per-repo, don't copy across) | Add `AWS_ACCESS_KEY_ID/SECRET`, `AWS_KEY_PAIR_NAME`, `MONGO_PASSWORD`, `JWT_SECRET` to event-ticket_3 |
+| `Redeploy` fails ~13s at SSH | EC2 not provisioned yet, or `EC2_APP_HOST=placeholder` | Run `apply` first; set `EC2_APP_HOST` to the new IP |
+| App EC2 runs the wrong code | `deploy.yml` cloned `event-ticket` (A1) | Fixed: it now clones `event-ticket_3` |
+| `not a recognised key file format` (PuTTY) | `.pem` is OpenSSH, PuTTY needs `.ppk` | PuTTYgen → Load → Save private key (.ppk); or use Windows `ssh` |
+| `UNPROTECTED PRIVATE KEY FILE` / `bad permissions` | Windows ACLs too open on `.pem` | `icacls $key /inheritance:r /grant:r "$($env:USERNAME):R"` |
+| `Load key … invalid format` | key has BOM/UTF-16, or it's a `.ppk` | re-download `.pem`, or PuTTYgen → Export OpenSSH key |
+| `Permission denied (publickey)` (perms OK) | `.pem` doesn't match `AWS_KEY_PAIR_NAME` | use the matching key, or recreate key pair + re-apply |
+| `EACCES … /usr/lib/node_modules/newman` | global npm install needs root on EC2 | `sudo npm install -g newman` (the script now falls back to sudo) |
+| Create event `400`; booking `404` cascade | collection ordering (see §16) | fixed in the collection |
+| `Delete venue 400` "used by active event" | leftover draft (the Prototype clone) | Cleanup deletes the clone before the venue |
+
+---
+
+*Personal runbook — keep in the repo root so the whole team follows the same steps.*
+
+*Last updated: 2026-06-21 — added §16 real API testing (Newman) and §17 from-scratch deploy
++ full gotchas table (SSH key, perms, per-repo secrets, ephemeral TF state, collection fixes).*
