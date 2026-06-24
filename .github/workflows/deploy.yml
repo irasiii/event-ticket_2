@@ -23,9 +23,9 @@ env:
 
 jobs:
   # ─────────────────────────────────────────────────────────────────────────────
-  # Job 1 — Terraform Plan
+  # Job 1 — Terraform Plan  (runs on every PR and every push to production)
   # ─────────────────────────────────────────────────────────────────────────────
-  terraform-plan: 
+  terraform-plan:
     name: "Terraform Plan"
     runs-on: ubuntu-latest
     if: github.event.inputs.action != 'destroy'
@@ -78,7 +78,7 @@ jobs:
             -var="mongo_password=${{ secrets.MONGO_PASSWORD }}" \
             -var="mongo_database=event_ticketing" \
             -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
-            -var="github_repo=https://github.com/irasiii/event-ticket.git" \
+            -var="github_repo=https://github.com/irasiii/event-ticket_2.git" \
             -out=tfplan
         continue-on-error: true
 
@@ -128,7 +128,7 @@ jobs:
         run: exit 1
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # Job 2 — Terraform Apply 
+  # Job 2 — Terraform Apply  (only on push to production, never on PRs)
   # ─────────────────────────────────────────────────────────────────────────────
   terraform-apply:
     name: "Terraform Apply"
@@ -181,7 +181,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # Job 3 — Terraform Destroy 
+  # Job 3 — Terraform Destroy  (manual workflow_dispatch with action=destroy)
   # ─────────────────────────────────────────────────────────────────────────────
   terraform-destroy:
     name: "Terraform Destroy"
