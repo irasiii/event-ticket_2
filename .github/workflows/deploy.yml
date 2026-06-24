@@ -78,7 +78,7 @@ jobs:
             -var="mongo_password=${{ secrets.MONGO_PASSWORD }}" \
             -var="mongo_database=event_ticketing" \
             -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
-            -var="github_repo=https://github.com/irasiii/event-ticket.git" \
+            -var="github_repo=https://github.com/irasiii/event-ticket_2.git" \
             -out=tfplan
         continue-on-error: true
 

@@ -1,11 +1,12 @@
 const User = require('../models/User');
 const Event = require('../models/Event');
 const Booking = require('../models/Booking');
+const { RealAnalyticsService, AnalyticsProxy } = require('../patterns/AnalyticsProxy'); // Proxy
 
-// GET /api/admin/analytics
-const getAnalytics = async (req, res) => {
-  try {
-    const [totalUsers, totalEvents, totalBookings, revenueResult, recentBookings] = await Promise.all([
+// The heavy data work lives in a function injected into the real service; the
+// proxy below guards it so only admins can ever reach it.
+async function computeAnalytics() {
+  const [totalUsers, totalEvents, totalBookings, revenueResult, recentBookings] = await Promise.all([
       User.countDocuments({ role: 'user' }),
       Event.countDocuments(),
       Booking.countDocuments({ status: 'confirmed' }),
@@ -36,9 +37,18 @@ const getAnalytics = async (req, res) => {
       { $sort: { _id: 1 } },
     ]);
 
-    res.json({ totalUsers, totalEvents, totalBookings, totalRevenue, recentBookings, trend });
+    return { totalUsers, totalEvents, totalBookings, totalRevenue, recentBookings, trend };
+}
+
+// GET /api/admin/analytics  — access guarded by the Proxy pattern.
+const analyticsProxy = new AnalyticsProxy(new RealAnalyticsService(computeAnalytics));
+
+const getAnalytics = async (req, res) => {
+  try {
+    const data = await analyticsProxy.getAnalytics(req.user);
+    res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(err.status || 500).json({ message: err.message });
   }
 };
 
@@ -146,3 +156,4 @@ const getAllEvents = async (req, res) => {
 };
 
 module.exports = { getAnalytics, getAllUsers, getUserById, updateUser, deleteUser, getAllBookings, getAllEvents };
+// (Proxy pattern guards getAnalytics — see patterns/AnalyticsProxy.js)

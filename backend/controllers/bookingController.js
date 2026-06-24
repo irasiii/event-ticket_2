@@ -2,43 +2,37 @@ const QRCode = require('qrcode');
 const Booking = require('../models/Booking');
 const Event = require('../models/Event');
 
+// --- Pattern / service layer (OOP + design patterns) ---
+const { strategyForRole } = require('../patterns/cancellationStrategy');     // Strategy
+const logger = require('../patterns/Logger');                               // Singleton
+const { BookingFacade } = require('../patterns/BookingFacade');             // Facade (wraps Adapter + Decorator + Observer + service)
+
+// One shared facade orchestrates validation, pricing add-ons, payment,
+// seat deduction and notifications behind a single interface.
+const bookingFacade = new BookingFacade();
+
 // POST /api/bookings  — authenticated user
 const createBooking = async (req, res) => {
   try {
-    const { eventId, tickets } = req.body; // tickets: [{tierName, quantity}]
+    const { eventId, tickets, paymentProvider = 'stripe', addOns = {} } = req.body; // tickets: [{tierName, quantity}]
     if (!eventId || !tickets || !tickets.length) {
       return res.status(400).json({ message: 'eventId and tickets are required' });
     }
 
     const event = await Event.findById(eventId);
-    if (!event) return res.status(404).json({ message: 'Event not found' });
-    if (event.status !== 'published') return res.status(400).json({ message: 'Event is not available for booking' });
 
-    const now = new Date();
-    if (new Date(event.date) < now) return res.status(400).json({ message: 'Event has already passed' });
-
-    let totalAmount = 0;
-    const bookedTickets = [];
-
-    for (const req_ticket of tickets) {
-      const tier = event.ticketTiers.find(t => t.name === req_ticket.tierName);
-      if (!tier) return res.status(400).json({ message: `Ticket tier "${req_ticket.tierName}" not found` });
-      const available = tier.quantity - tier.sold;
-      if (req_ticket.quantity > available) {
-        return res.status(400).json({ message: `Only ${available} tickets left for "${tier.name}"` });
-      }
-      bookedTickets.push({ tierName: tier.name, quantity: req_ticket.quantity, unitPrice: tier.price });
-      totalAmount += tier.price * req_ticket.quantity;
+    // Facade pattern — one call orchestrates validation + pricing (Decorator),
+    // payment (Adapter) and seat deduction (service layer).
+    const result = bookingFacade.placeBooking({ event, tickets, paymentProvider, addOns });
+    if (!result.ok) {
+      return res.status(result.status).json({ message: result.message });
     }
+    const { totalAmount, bookedTickets, payment } = result;
 
-    // Deduct seats
-    for (const bt of bookedTickets) {
-      const tier = event.ticketTiers.find(t => t.name === bt.tierName);
-      tier.sold += bt.quantity;
-    }
+    // Persist the event with the deducted seats.
     await event.save();
 
-    // Generate QR
+    // Factory — generate QR.
     const qrData = `BOOKING-${req.user._id}-${eventId}-${Date.now()}`;
     const qrCode = await QRCode.toDataURL(qrData);
 
@@ -49,11 +43,22 @@ const createBooking = async (req, res) => {
       totalAmount,
       qrCode,
       qrData,
+      paymentRef: payment.transactionId,
+    });
+
+    logger.info('Booking created', { booking: booking._id.toString(), provider: payment.provider });
+
+    // Observer pattern — notify all subscribers (email stub, audit log, …).
+    bookingFacade.announceCreated({
+      id: booking._id.toString(),
+      userEmail: req.user.email,
+      total: totalAmount,
     });
 
     await booking.populate('event', 'title date venue');
     res.status(201).json({ booking });
   } catch (err) {
+    logger.error('Booking creation failed', { error: err.message });
     res.status(500).json({ message: err.message });
   }
 };
@@ -77,7 +82,6 @@ const getBookingById = async (req, res) => {
       .populate('event', 'title date venue status bannerImage')
       .populate('user', 'name email');
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
-    // Allow own booking or admin
     if (booking.user._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied' });
     }
@@ -99,30 +103,30 @@ const cancelBooking = async (req, res) => {
       return res.status(400).json({ message: 'Booking is already cancelled' });
     }
 
-    // Enforce 24-hour cancellation window (skip for admin)
-    if (req.user.role !== 'admin') {
-      const eventDate = new Date(booking.event.date);
-      const hoursUntilEvent = (eventDate - new Date()) / (1000 * 60 * 60);
-      if (hoursUntilEvent < 24) {
-        return res.status(400).json({ message: 'Cancellation is only allowed up to 24 hours before the event' });
-      }
-    }
-
-    // Restore seats
-    const event = await Event.findById(booking.event._id);
-    if (event) {
-      for (const bt of booking.tickets) {
-        const tier = event.ticketTiers.find(t => t.name === bt.tierName);
-        if (tier) tier.sold = Math.max(0, tier.sold - bt.quantity);
-      }
-      await event.save();
+    // Strategy pattern — choose the cancellation policy by role at runtime.
+    const policy = strategyForRole(req.user.role);
+    const decision = policy.isCancellationAllowed(booking.event);
+    if (!decision.allowed) {
+      return res.status(400).json({ message: decision.reason });
     }
 
     booking.status = 'cancelled';
     booking.cancelledAt = new Date();
     await booking.save();
+
+    // Facade restores seats (service layer) and announces via Observer.
+    const event = await Event.findById(booking.event._id);
+    bookingFacade.cancelBooking({
+      event,
+      bookedTickets: booking.tickets,
+      booking: { id: booking._id.toString(), userEmail: req.user.email },
+    });
+    if (event) await event.save();
+
+    logger.info('Booking cancelled', { booking: booking._id.toString(), by: req.user.role });
     res.json({ message: 'Booking cancelled successfully', booking });
   } catch (err) {
+    logger.error('Booking cancellation failed', { error: err.message });
     res.status(500).json({ message: err.message });
   }
 };
