@@ -23,9 +23,9 @@ env:
 
 jobs:
   # ─────────────────────────────────────────────────────────────────────────────
-  # Job 1 — Terraform Plan  (runs on every PR and every push to production)
+  # Job 1 — Terraform Plan
   # ─────────────────────────────────────────────────────────────────────────────
-  terraform-plan:
+  terraform-plan: 
     name: "Terraform Plan"
     runs-on: ubuntu-latest
     if: github.event.inputs.action != 'destroy'
@@ -128,7 +128,7 @@ jobs:
         run: exit 1
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # Job 2 — Terraform Apply  (only on push to production, never on PRs)
+  # Job 2 — Terraform Apply 
   # ─────────────────────────────────────────────────────────────────────────────
   terraform-apply:
     name: "Terraform Apply"
@@ -181,7 +181,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # Job 3 — Terraform Destroy  (manual workflow_dispatch with action=destroy)
+  # Job 3 — Terraform Destroy 
   # ─────────────────────────────────────────────────────────────────────────────
   terraform-destroy:
     name: "Terraform Destroy"
