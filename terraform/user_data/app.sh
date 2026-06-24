@@ -58,6 +58,17 @@ ENVFILE
   sudo -u ec2-user npm run seed || echo "Seed skipped."
   sudo -u ec2-user pm2 start server.js --name "event-ticketing-api" --cwd "$BACKEND_DIR"
   sudo -u ec2-user pm2 save
+
+  # --- Newman (Postman CLI) for real API testing on this host ---
+  npm install -g newman newman-reporter-htmlextra || echo "Newman install skipped."
+
+  # Run an initial real end-to-end API test against the live app (non-fatal).
+  sleep 8
+  sudo -u ec2-user bash -lc "cd '$APP_DIR' && newman run postman/TicketHub.postman_collection.json \
+      --env-var baseUrl=http://localhost:5000 \
+      --reporters cli,htmlextra \
+      --reporter-htmlextra-export '$APP_DIR/newman-report.html'" \
+    || echo "Initial Newman test reported failures (non-fatal at boot)."
 fi
 
 # 8. Build React frontend
