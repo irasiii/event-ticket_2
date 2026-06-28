@@ -5,7 +5,15 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
   }
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 provider "aws" {
@@ -48,7 +56,7 @@ data "aws_subnets" "default" {
 # ─── Security Group: MongoDB Server ──────────────────────────────────────────
 
 resource "aws_security_group" "mongodb_sg" {
-  name        = "${var.project_name}-mongodb-sg"
+  name        = "${var.project_name}-mongodb-sg-${random_id.suffix.hex}"
   description = "Security group for MongoDB EC2 instance"
   vpc_id      = data.aws_vpc.default.id
 
@@ -70,7 +78,7 @@ resource "aws_security_group" "mongodb_sg" {
   }
 
   tags = {
-    Name    = "${var.project_name}-mongodb-sg"
+    Name    = "${var.project_name}-mongodb-sg-${random_id.suffix.hex}"
     Project = var.project_name
   }
 }
@@ -89,7 +97,7 @@ resource "aws_security_group_rule" "mongodb_from_app" {
 # ─── Security Group: App Server ───────────────────────────────────────────────
 
 resource "aws_security_group" "app_sg" {
-  name        = "${var.project_name}-app-sg"
+  name        = "${var.project_name}-app-sg-${random_id.suffix.hex}"
   description = "Security group for App (Node.js + React) EC2 instance"
   vpc_id      = data.aws_vpc.default.id
 
@@ -147,7 +155,7 @@ resource "aws_security_group" "app_sg" {
   }
 
   tags = {
-    Name    = "${var.project_name}-app-sg"
+    Name    = "${var.project_name}-app-sg-${random_id.suffix.hex}"
     Project = var.project_name
   }
 }
