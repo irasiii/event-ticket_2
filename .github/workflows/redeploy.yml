@@ -39,7 +39,7 @@ jobs:
             echo "==> Restarting backend..."
             pm2 restart event-ticketing-api
 
-            echo "==> Done! App is live."
+            echo "==> Done! The App is live."
             pm2 status
 
   # End to end API test against the LIVE deployed app (Newman) ──────────
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: redeploy
     steps:
-      - name: Checkout
+      - name: Checkout 
         uses: actions/checkout@v4
 
       - name: Set up Node.js

@@ -1,0 +1,9 @@
+# Use this workspace to collaborate
+workspace:
+  id: e0335c32-50a5-4519-86f5-09c6065c6759
+
+localResources:
+  collections:
+    - ..\TicketHub.postman_collection.json
+  environments:
+    - ..\TicketHub.postman_environment.json
