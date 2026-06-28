@@ -42,7 +42,7 @@ jobs:
             echo "==> Done! The App is live."
             pm2 status
 
-  # End to end API test against the LIVE deployed app (Newman) ──────────
+  # ── Real end-to-end API test against the LIVE deployed app (Newman) ──────────
   smoke-test:
     name: API smoke test (Newman)
     runs-on: ubuntu-latest

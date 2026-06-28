@@ -1,0 +1,72 @@
+name: JIRA Auto-Link
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: ["*"]
+
+jobs:
+  link:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Post commit/PR references to JIRA
+        env:
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_URL: "https://iirasras.atlassian.net"
+        run: |
+          # Gather text: commits + PR title
+          TEXT=""
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            TEXT="${{ github.event.pull_request.title }}"
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+            TEXT="$TEXT $(git log --format='%s %b' $BASE..$HEAD 2>/dev/null || true)"
+          else
+            TEXT="$(git log --format='%s %b' -1 ${{ github.sha }} 2>/dev/null || true)"
+          fi
+
+          KEYS=$(echo "$TEXT" | grep -oP 'SCRUM-\d+' | sort -u)
+          echo "Keys found: ${KEYS:-none}"
+          [ -z "$KEYS" ] && exit 0
+
+          # Determine link
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            LINK="${{ github.event.pull_request.html_url }}"
+            LABEL="PR"
+          else
+            LINK="https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+            LABEL="commit"
+          fi
+
+          for KEY in $KEYS; do
+            COMMENT=$(cat <<JSON
+{
+  "body": {
+    "type": "doc",
+    "version": 1,
+    "content": [
+      {"type": "paragraph","content": [
+        {"type": "text","text": "GitHub "},
+        {"type": "text","text": "$LABEL","marks":[{"type":"strong"}]},
+        {"type": "text","text": " linked: $LINK"}
+      ]}
+    ]
+  }
+}
+JSON
+)
+            HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
+              -u "$JIRA_EMAIL:$JIRA_TOKEN" \
+              -X POST -H "Content-Type: application/json" \
+              -d "$COMMENT" \
+              "$JIRA_URL/rest/api/3/issue/$KEY/comment" 2>/dev/null)
+
+            [ "$HTTP" = "201" ] && echo "  ✓ $KEY" || echo "  ✗ $KEY (HTTP $HTTP)"
+          done
