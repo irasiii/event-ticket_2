@@ -17,8 +17,8 @@ Infra (EC2 #1/#2): deploy.yml  workflow_dispatch  action=apply  (manual, one-tim
 | Workflow | Trigger | What it does |
 |---|---|---|
 | **ci.yml** | PR to `main`; push to `main`/`develop` | Backend job (mongo:6 service + 40 unit tests) + frontend build. The merge gate. |
-| **deploy.yml** | PR to `production`; manual `workflow_dispatch` | On PR: `terraform plan`, posts plan as PR comment. Manual `apply`/`destroy` provisions/tears down the 2 EC2s. |
-| **redeploy.yml** | push to `production`; manual | SSH to App EC2 → `git pull` production → rebuild frontend → `pm2 restart`. |
+| **deploy.yml** | PR to `production`; manual `workflow_dispatch` | On PR: `terraform plan`, posts plan as PR comment. Manual `apply`/`destroy` provisions/tears down the 2 EC2s using **S3 remote state**. After `apply`, auto-updates `EC2_APP_HOST` secret + dispatches `redeploy.yml`. |
+| **redeploy.yml** | push to `production`; manual; dispatched by deploy.yml | SSH to App EC2 → `git pull` production → rebuild frontend → `pm2 restart` → Newman smoke test. |
 
 ## Step 1 — Merge each feature branch into `main` (one by one)
 
@@ -49,8 +49,8 @@ Once everything is merged into `main` and CI is green:
 
 1. Open a PR with **base = production**, compare = `main`.
 2. **deploy.yml runs** on the PR → `terraform plan` → posts the plan as a PR comment (review infra changes).
-3. Merge the PR. The push to `production` triggers **redeploy.yml** → SSH to App EC2 → pull + build + `pm2 restart` → live.
-4. **First time only:** if the EC2s don't exist, run Actions → *AWS Infrastructure CI/CD* → Run workflow → `action = apply` once. After that, releases are just the `main → production` merge.
+3. Merge the PR. The push to `production` triggers **redeploy.yml** → SSH to App EC2 → pull + build + `pm2 restart` → Newman smoke test → live.
+4. **First time only:** if the EC2s don't exist, run Actions → *AWS Infrastructure CI/CD* → Run workflow → Branch: `production` → `action = apply` once. The workflow auto-creates S3 backend, provisions EC2s, updates `EC2_APP_HOST` secret, and dispatches `redeploy.yml`. After that, releases are just the `main → production` merge.
 
 ```bash
 git push origin main

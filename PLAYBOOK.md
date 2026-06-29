@@ -235,9 +235,13 @@ the `user_data` bootstrap scripts.
 Also create a GitHub **Environment** named `production` (Settings → Environments).
 
 ### B. Provision (first time)
-- Via GitHub: Actions → **AWS Infrastructure CI/CD** → Run workflow → `action = apply`.
-  Bootstrap installs Mongo/Node/PM2/nginx, clones the repo, writes `.env`, seeds, builds,
-  starts services. (~3–5 min). Copy the App public IP from the run summary.
+- Via GitHub: Actions → **AWS Infrastructure CI/CD** → Run workflow → **Branch = `production`** → **`action = apply`**.
+  The workflow:
+  1. Creates S3 bucket + DynamoDB table for remote state (if missing)
+  2. Imports existing tagged resources into S3 state (first run with backend)
+  3. `terraform apply` — provisions both EC2s, bootstraps Mongo/Node/PM2/nginx, clones the repo, writes `.env`, seeds, builds, starts services (~3–5 min)
+  4. **Auto-updates** `EC2_APP_HOST` GitHub secret with the new app IP
+  5. **Auto-dispatches** `redeploy.yml` on production branch
 - Or locally:
   ```bash
   cd terraform
@@ -248,13 +252,10 @@ Also create a GitHub **Environment** named `production` (Settings → Environmen
   terraform output summary
   ```
 
-### B2. Post-provision — update secrets
-After `apply` completes:
-1. **Copy the new App public IP** from the run summary.
-2. **Update `EC2_APP_HOST`** GitHub Secret to the new IP.
-3. If the key pair was recreated, update **`EC2_SSH_KEY`** and **`AWS_KEY_PAIR_NAME`** secrets.
-4. Trigger a test redeploy: push `main → production` or dispatch `redeploy.yml` manually.
-5. Verify at `http://<app-ip>` in your browser.
+### B2. Post-provision
+The workflow handles everything automatically. If running locally, after `apply`:
+1. Copy the new App public IP from `terraform output`
+2. Update `EC2_APP_HOST` secret, dispatch `redeploy.yml`
 
 ### C. Verify
 ```
@@ -477,21 +478,16 @@ runs the *same* exported collection. It's wired up two ways:
   scp -i $key ec2-user@<app-ip>:~/app/newman-report.html .
   ```
 
-### Current Newman status (known issues)
+### Current Newman status
 
-The Newman smoke test runs as a **non-blocking informational step** in `redeploy.yml`. It currently reports **test-script failures** due to collection bugs:
+The Newman smoke test runs as a **blocking step** in `redeploy.yml`. With the following fixes applied, the collection runs green:
 
-| Issue | Endpoints affected | Cause |
+| Fix | What | Why |
 |---|---|---|
-| `SyntaxError: Identifier 'data' has already been declared` | Login User, Login Admin, Create Category, Create Venue, Create Event, Create Booking, Admin > Users | Newman reuses the VM sandbox; `const data` crashes on second invocation. Fixed: changed all 7 to `let data`. |
-| `401 Unauthorized` | Create Event, Create Booking, Delete Venue, etc. | Caused by `const data` crash in Login scripts → `pm.environment.set("token", ...)` never runs. Fixed by the `let data` change above. |
+| `const data` → `let data` | Login, Create, Admin scripts (7 total) | Newman reuses the VM sandbox across scripts; `const` throws "already declared" on second run |
+| `{{$timestamp}}` in Register email | Register request body | Prevents "email already in use" on re-runs |
 
-These are **Postman collection test-script bugs**, not infrastructure problems. The API itself works correctly (verified manually via browser and direct `curl`).
-
-### Fix applied (2026-06-29)
-The collection has been fixed and pushed:
-1. All 7 `const data` → `let data` (Newman VM sandbox reuse fix)
-2. Register email uses `{{$timestamp}}` for idempotent re-runs
+Test reports are uploaded as `newman-report.html` artifacts from every redeploy.
 
 ### Collection design rules (already applied)
 - **Order:** Categories + Venues are created **before** Events (Create event needs
@@ -506,28 +502,25 @@ The collection has been fixed and pushed:
 
 ## 17. From-scratch deploy (demolish → rebuild) + every gotcha we hit
 
-### Tear down — DON'T rely on `terraform destroy`
-There is **no S3 backend**, so Terraform state lived only on the Actions runner and is gone
-after apply. A `destroy` run starts with empty state and won't find your resources. Instead:
-- **AWS Console:** terminate both EC2s, then delete their security groups, or
-- **Script:** `python scripts/aws_teardown.py --region us-east-1 --execute`
-  (dry-run first without `--execute`; scoped to the `Project=event-ticketing` tag).
+### Tear down — use `terraform destroy` from the workflow
+State is now stored in **S3** (`event-ticketing-terraform-state`) + DynamoDB lock. Use:
+- **GitHub:** Actions → *AWS Infrastructure CI/CD* → Run workflow → **Branch = `production`**
+  → `action = destroy`. S3-backed state will find all resources and tear them down.
+- **Script:** `python scripts/aws_teardown.py --region us-east-1 --execute` (as alternative;
+  dry-run first without `--execute`; scoped to the `Project=event-ticketing` tag).
 
 ### Rebuild — clean sequence
 1. **Apply:** Actions → *AWS Infrastructure CI/CD* → Run workflow → **Branch = `production`**
-   → `action = apply`. (~5 min. App auto-clones event-ticket_3, seeds, starts API, installs
-   Newman + runs an initial test.)
-2. **Get the new App public IP** from the run summary (it changes every apply).
-3. **Update the `EC2_APP_HOST`** secret to that IP.
-4. **SSH in** and run the real test (see §16). New key each run only if you recreated the
-   key pair.
-5. **Trigger CI deploy + smoke-test:** push `main → production`.
+   → `action = apply`. (~5 min. Workflow auto-creates S3 backend, imports existing resources,
+   provisions both EC2s, updates `EC2_APP_HOST` secret, then dispatches `redeploy.yml`.)
+2. **Verify** at `http://<app-ip>` — IP available in the run summary or at the `EC2_APP_HOST`
+   secret value (auto-updated).
 
 ### Gotchas (cause → fix) — keep this list handy
 | Symptom | Cause | Fix |
 |---|---|---|
 | `Could not load credentials from any providers` (Terraform Plan, 4s) | AWS secrets not set **on this repo** (secrets are per-repo, don't copy across) | Add `AWS_ACCESS_KEY_ID/SECRET`, `AWS_KEY_PAIR_NAME`, `MONGO_PASSWORD`, `JWT_SECRET` to event-ticket_3 |
-| `Redeploy` fails ~13s at SSH | EC2 not provisioned yet, or `EC2_APP_HOST=placeholder` | Run `apply` first; set `EC2_APP_HOST` to the new IP |
+| `Redeploy` fails ~13s at SSH | EC2 not provisioned yet, or `EC2_APP_HOST=placeholder` | Run `apply` first — secret is auto-updated after apply |
 | App EC2 runs the wrong code | `deploy.yml` cloned `event-ticket` (A1) | Fixed: it now clones `event-ticket_3` |
 | `not a recognised key file format` (PuTTY) | `.pem` is OpenSSH, PuTTY needs `.ppk` | PuTTYgen → Load → Save private key (.ppk); or use Windows `ssh` |
 | `UNPROTECTED PRIVATE KEY FILE` / `bad permissions` | Windows ACLs too open on `.pem` | `icacls $key /inheritance:r /grant:r "$($env:USERNAME):R"` |
@@ -536,15 +529,16 @@ after apply. A `destroy` run starts with empty state and won't find your resourc
 | `EACCES … /usr/lib/node_modules/newman` | global npm install needs root on EC2 | `sudo npm install -g newman` (the script now falls back to sudo) |
 | Create event `400`; booking `404` cascade | collection ordering (see §16) | fixed in the collection |
 | `Delete venue 400` "used by active event" | leftover draft (the Prototype clone) | Cleanup deletes the clone before the venue |
-| `dial tcp ***:22: i/o timeout` on redeploy | `EC2_APP_HOST` secret has stale IP from previous deployment | Update `EC2_APP_HOST` to the new IP from `terraform output` or the deploy workflow summary |
-| Terraform Plan fails: SG names already exist | Re-apply without destroying first; SG names collide (Terraform state is local/ephemeral) | Use `random_id.suffix` on SG resource names to make each apply unique, or run `scripts/aws_teardown.py --execute` first |
-| New EC2 instances but `event-ticketing-key` mismatch | Previous key pair was deleted, new one has different fingerprint | Recreate key pair with same name, update `EC2_SSH_KEY` secret with new PEM, update `AWS_KEY_PAIR_NAME` if changed |
-| `postman/TicketHub.postman_collection.json` not found in redeploy | Wrong filename — the actual collection on `production` is `"postman/TicketHub API.postman_collection.json"` (space + "API") | Fix the filename in `redeploy.yml` with proper quoting: `"postman/TicketHub API.postman_collection.json"` |
-| Newman finds no collection file despite correct path | Unquoted space in filename splits into two arguments | Wrap the filename in double quotes in the workflow YAML |
-| Orphaned security groups left over after teardown | `terraform destroy` ran from a runner with empty state, didn't find old resources | Delete SGs manually from AWS Console, or use `scripts/aws_teardown.py --region us-east-1 --execute` |
+| `dial tcp ***:22: i/o timeout` on redeploy | `EC2_APP_HOST` secret has stale IP from previous deployment | Auto-fixed: deploy workflow now updates `EC2_APP_HOST` after `apply` |
+| Terraform Plan fails: SG names already exist | Re-apply without destroying first; SG names collide (state was ephemeral) | Fixed: SG names now include `random_id.suffix.hex` for uniqueness |
+| New EC2 instances but `event-ticketing-key` mismatch | Previous key pair was deleted, new one has different fingerprint | Recreate key pair with same name, update `EC2_SSH_KEY` secret with new PEM |
+| `postman/TicketHub.postman_collection.json` not found | Wrong filename — the actual collection has " API" in the name | Fixed: `redeploy.yml` now uses `"postman/TicketHub API.postman_collection.json"` with quotes |
+| Newman "no collection file" despite correct path | Unquoted space in filename splits into two arguments | Fixed: double quotes in the workflow YAML |
+| Orphaned SGs after teardown | `terraform destroy` ran without state | Fixed: S3 backend now persists state; also can use `scripts/aws_teardown.py` |
+| `terraform init` fails: bucket doesn't exist | S3 state bucket not yet created | Workflow auto-creates it; local users create manually before `init` |
 
 ---
 
 *Personal runbook — keep in the repo root so the whole team follows the same steps.*
 
-*Last updated: 2026-06-29 — updated for final AWS deployment session: live IPs `18.232.51.83`, SG name collision fix (`random_id.suffix`), stale-IP/SSH-key gotchas, Newman smoke test with known collection bugs, `scripts/aws_teardown.py` usage.*
+*Last updated: 2026-06-29 — updated for S3 backend, auto-secret-update, Newman fixed (let data + timestamp email), destroy now works from workflow, live IPs `18.232.51.83` / `98.84.26.100`.*

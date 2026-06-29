@@ -1,17 +1,15 @@
 # TicketHub — Event Ticketing Platform
 
-A full-stack event ticketing application deployed on AWS via GitHub Actions + Terraform CI/CD pipeline.
+A full-stack event ticketing application deployed on AWS via GitHub Actions + Terraform CI/CD pipeline, with S3 remote state and fully automated deploy lifecycle.
 
 ## Live Deployment
-
-The app is currently deployed and accessible at:
 
 | Component | IP Address |
 |---|---|
 | App (React + API) | `http://18.232.51.83` |
 | MongoDB | `98.84.26.100` (private network to app only) |
 
-> These IPs change on every `terraform apply`. After a fresh provision, update the `EC2_APP_HOST` and `EC2_SSH_KEY` GitHub Secrets before the redeploy workflow works.
+> IPs persist across `terraform apply` runs via S3 remote state. On re-apply with new instances, `EC2_APP_HOST` and `EC2_SSH_KEY` secrets are updated automatically by the deploy workflow.
 
 ---
 
@@ -47,24 +45,33 @@ The app is currently deployed and accessible at:
                          │  └──────────────────┘   │
                          └─────────────────────────┘
                               Amazon Linux 2023
+
+                    ┌─────────────────────────────┐
+                    │  Terraform Remote State      │
+                    │  S3: event-ticketing-        │
+                    │      terraform-state         │
+                    │  DynamoDB: event-ticketing-  │
+                    │      terraform-lock          │
+                    └─────────────────────────────┘
 ```
 
 | Instance | Name | OS | Type | Software |
 |---|---|---|---|---|
 | App | `event-ticketing-app` | Amazon Linux 2023 | t2.micro | Node.js 20, Nginx, PM2 |
 | Database | `event-ticketing-mongodb` | Amazon Linux 2023 | t2.micro | MongoDB 7.0 |
+| State | S3 bucket + DynamoDB | — | — | Terraform remote state |
 
 ## Repository Layout
 
 ```
-assignment_1/
+event-ticket_2/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml            # Runs tests + frontend build on every push
-│       ├── deploy.yml        # Terraform: provision/destroy EC2 infrastructure
-│       └── redeploy.yml      # Deploy code changes to running EC2 (git pull + restart)
+│       ├── deploy.yml        # Terraform: plan/apply/destroy + auto-update secrets + trigger redeploy
+│       └── redeploy.yml      # Deploy code changes to running EC2 (git pull + restart + Newman test)
 ├── terraform/
-│   ├── main.tf               # EC2 instances, Security Groups, AMI
+│   ├── main.tf               # EC2 instances, Security Groups, AMI, S3 backend config
 │   ├── variables.tf          # Input variables
 │   ├── outputs.tf            # Outputs (IPs, SSH commands)
 │   └── user_data/
@@ -76,16 +83,16 @@ assignment_1/
 │   ├── middleware/           # Auth middleware
 │   ├── seed.js               # Database seeder
 │   └── server.js             # Entry point
-└── frontend/                 # React + Vite SPA
-    └── src/
-        ├── pages/            # EventsPage, EventDetailPage, MyTicketsPage, etc.
-        ├── components/       # EventCard, Navbar, etc.
-        └── context/          # AuthContext
+├── frontend/                 # React + Vite SPA
+│   └── src/
+│       ├── pages/            # EventsPage, EventDetailPage, MyTicketsPage, etc.
+│       ├── components/       # EventCard, Navbar, etc.
+│       └── context/          # AuthContext
+└── postman/                  # API testing collection
+    └── TicketHub API.postman_collection.json
 ```
 
 ## GitHub Secrets Required
-
-Go to your repo → **Settings → Secrets and variables → Actions → New repository secret**:
 
 | Secret | Description |
 |---|---|
@@ -94,8 +101,9 @@ Go to your repo → **Settings → Secrets and variables → Actions → New rep
 | `AWS_KEY_PAIR_NAME` | EC2 key pair name (must exist in `us-east-1`) |
 | `MONGO_PASSWORD` | Password for the MongoDB `tickethub` user |
 | `JWT_SECRET` | Secret string for signing JWT tokens |
-| `EC2_APP_HOST` | Public IP of the app EC2 instance (add after first deploy) |
-| `EC2_SSH_KEY` | Full contents of your `.pem` private key file — **must include** `-----BEGIN RSA PRIVATE KEY-----` header and footer (add after first deploy) |
+| `EC2_APP_HOST` | Public IP of the app EC2 instance (**auto-updated** after apply) |
+| `EC2_SSH_KEY` | Full contents of your `.pem` private key file |
+| `GH_PAT` | GitHub PAT with `repo` scope — used by workflow to update secrets and dispatch workflows |
 
 ## Workflows
 
@@ -105,73 +113,54 @@ Triggers on every push to `main` or `develop`.
 - Runs frontend build (`npm run build`)
 
 ### `deploy.yml` — Infrastructure Provisioning
-Triggers **manually** via `workflow_dispatch`.
+Triggers **manually** via `workflow_dispatch` on the `production` branch.
 - **Action: plan** — runs `terraform plan`, shows what will be created
-- **Action: apply** — runs `terraform apply`, creates both EC2 instances from scratch
+- **Action: apply** — runs `terraform apply`, then **auto-updates** `EC2_APP_HOST` secret with the new IP, then **auto-dispatches** `redeploy.yml` to deploy code
 - **Action: destroy** — runs `terraform destroy`, tears down all AWS resources
 
-> Terraform uses **S3 remote state** (`event-ticketing-terraform-state`) with DynamoDB locking (`event-ticketing-terraform-lock`) — so `apply` and `destroy` work consistently from any GitHub Actions runner. Security Group names use `random_id.suffix.hex` to avoid name collisions on re-apply.
+> Terraform uses **S3 remote state** (`event-ticketing-terraform-state`) with **DynamoDB locking** (`event-ticketing-terraform-lock`) — state is persistent across runners. Security Group names use `random_id.suffix.hex` to avoid collisions. The deploy workflow auto-creates the bucket/table if missing, and imports existing resources on the first S3-backed run.
 
 ### `redeploy.yml` — Deploy Code Changes
-Triggers automatically on every push to `production`, or manually via `workflow_dispatch`.
+Triggers automatically on every push to `production`, manually via `workflow_dispatch`, or automatically by `deploy.yml` after apply.
 - SSHes into the app EC2 instance using `EC2_APP_HOST` and `EC2_SSH_KEY` secrets
-- Fetches and hard-resets to latest `origin/production` (handles force-push history)
+- Fetches and hard-resets to latest `origin/production`
 - Reinstalls backend dependencies
 - Deletes and rebuilds the React frontend (clean install avoids platform binary issues)
 - Copies built files to Nginx web root
 - Restarts the Node.js backend via PM2
-- Runs **Newman smoke test** against the live API (non-blocking, uploads `newman-report` artifact)
-
-> ⚠️ The Newman step runs as an informational check. Known collection bugs (`const data` redeclaration, auth token not flowing to mutating endpoints) cause test assertion failures but do not block deployment.
+- Runs **Newman smoke test** against the live API, uploads `newman-report.html` artifact
 
 ---
 
 ## First-Time Infrastructure Setup
 
-### 1. Clone and push to `production` branch
+### 1. Add GitHub Secrets
 
-```bash
-git clone https://github.com/irasiii/event-ticket.git
-cd event-ticket
-git checkout production
-```
+Add all 8 secrets (see table above). `EC2_APP_HOST` and `EC2_SSH_KEY` can be placeholder values — they will be updated after the first apply.
 
-### 2. Add all GitHub Secrets (see table above)
+### 2. Create EC2 Key Pair
 
-For the first deploy, you only need the first 5 secrets (`AWS_*`, `MONGO_PASSWORD`, `JWT_SECRET`).  
-Add `EC2_APP_HOST` and `EC2_SSH_KEY` after the instances are running.
+In AWS Console (us-east-1): EC2 → Key Pairs → Create key pair → name `event-ticketing-key` → download `.pem`.
 
 ### 3. Run the Deploy workflow
 
-1. Go to **Actions → Deploy Infrastructure → Run workflow**
-2. Select **action: apply**
+1. Go to **Actions → AWS Infrastructure CI/CD → Run workflow**
+2. Branch: `production`, Action: `apply`
 3. Click **Run workflow**
 
-Wait ~5 minutes. When complete, the job summary shows:
-```
-app_public_ip    = "54.x.x.x"
-mongodb_public_ip = "3.x.x.x"
-```
+Wait ~5 minutes. The workflow:
+1. Creates S3 bucket + DynamoDB table (if missing)
+2. Imports any existing resources into S3 state
+3. Runs `terraform apply` — provisions both EC2s
+4. **Automatically updates** `EC2_APP_HOST` secret with the new IP
+5. **Automatically dispatches** `redeploy.yml` to deploy the latest code
 
-### 4. Add the remaining secrets
+### 4. Add EC2_SSH_KEY secret
 
-Once you have the app IP:
-- `EC2_APP_HOST` → the `app_public_ip` value (e.g. `54.221.x.x`)
-- `EC2_SSH_KEY` → run the command below, then paste the output into GitHub
-
+If not set yet, copy the PEM contents:
 ```powershell
-# Windows — copies key to clipboard
 Get-Content "$env:USERPROFILE\.ssh\event-ticketing-key.pem" -Raw | Set-Clipboard
 ```
-
-The secret must include the full header and footer:
-```
------BEGIN RSA PRIVATE KEY-----
-MIIEo...
------END RSA PRIVATE KEY-----
-```
-
-These are needed for the `redeploy.yml` workflow to SSH in.
 
 ### 5. Access the app
 
@@ -188,33 +177,18 @@ Open `http://<app_public_ip>` in your browser.
 
 ## Deploying Code Changes to Production
 
-After the infrastructure is running, use this workflow whenever you change backend or frontend code.
-
 ### Automatic (recommended)
 
 Push your changes to both `main` and `production`:
 
 ```bash
-# Make your change
 git add .
 git commit -m "fix: update event booking logic"
-git push origin main              # triggers CI/CD Pipeline (tests + build check)
-git push origin main:production   # triggers Redeploy App (deploys to EC2)
+git push origin main              # triggers CI (tests + build check)
+git push origin main:production   # triggers redeploy (SSH + build + PM2 restart + Newman)
 ```
 
-GitHub Actions `redeploy.yml` will automatically:
-1. SSH into the app EC2
-2. `git fetch origin production && git reset --hard origin/production`
-3. `npm install --production` (backend)
-4. Clean install + `npm run build` (React frontend with Vite 4)
-5. Copy built files to `/usr/share/nginx/html/`
-6. `pm2 restart event-ticketing-api`
-
-Completes in ~30 seconds. ✅
-
-### Manual trigger
-
-Go to **Actions → Redeploy App → Run workflow → Run workflow**
+Completes in ~30 seconds + ~2 min for Newman smoke test.
 
 ### What each change type requires
 
@@ -222,20 +196,19 @@ Go to **Actions → Redeploy App → Run workflow → Run workflow**
 |---|---|
 | Backend route/logic fix | Push to `production` → auto redeploy |
 | Frontend component fix | Push to `production` → auto redeploy (rebuilds React) |
-| New npm package (backend) | Push to `production` → auto redeploy (`npm install` runs) |
-| New npm package (frontend) | Push to `production` → auto redeploy (`npm install` runs) |
-| New EC2 instance / security group | Run `deploy.yml` with **action: apply** |
+| New npm package | Push to `production` → auto redeploy |
+| New EC2 / infrastructure change | Run `deploy.yml` with **action: apply** |
 | Tear down all infrastructure | Run `deploy.yml` with **action: destroy** |
 
 ---
 
 ## Destroying Infrastructure
 
-1. Go to **Actions → Deploy Infrastructure → Run workflow**
-2. Select **action: destroy**
+1. Go to **Actions → AWS Infrastructure CI/CD → Run workflow**
+2. Branch: `production`, Action: `destroy`
 3. Click **Run workflow**
 
-This terminates both EC2 instances and deletes all security groups.
+Terraform uses S3 state, so destroy finds and removes all managed resources.
 
 ---
 
@@ -276,3 +249,4 @@ npm run dev             # runs on port 5173 (proxies /api to port 5000)
 - JWT tokens expire after 7 days
 - Passwords are hashed with bcrypt (10 rounds)
 - Admin routes are protected by role-based middleware
+- Secrets (`hp_token`, `AWS_Access`, `*.pem`) are gitignored and never committed

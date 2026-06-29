@@ -134,14 +134,18 @@ sudo tail -f /var/log/mongodb/mongod.log
 
 ## Tear Down (destroy all AWS resources)
 
+Via GitHub: Actions → **AWS Infrastructure CI/CD** → Run workflow → Branch: `production` → `action = destroy`.
+
+Or locally:
 ```bash
-terraform destroy
-# Type "yes" to confirm
+cd terraform/
+terraform init      # pulls state from S3
+terraform destroy   # type "yes"
 ```
 
 This removes both EC2 instances and their security groups. **Data will be lost.**
 
-> ⚠️ **Note on Terraform state:** State is stored locally (no S3 backend). If you run `terraform destroy` from a GitHub Actions runner, it starts with empty state and won't find your resources. Either run destroy **locally** from the same machine that ran `apply`, or use the `scripts/aws_teardown.py` cleanup script. Security Group names use `random_id.suffix.hex` to avoid name collisions on re-apply.
+> ✅ **Remote state (S3 + DynamoDB):** State lives in `event-ticketing-terraform-state` (S3) with `event-ticketing-terraform-lock` (DynamoDB). The workflow auto-creates these if missing and imports existing tagged resources on first run. `terraform destroy` works from any runner. Security Group names use `random_id.suffix.hex` for uniqueness.
 
 ---
 

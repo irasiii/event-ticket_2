@@ -2,17 +2,19 @@
 
 **Current live deployment:** App at `http://18.232.51.83`, MongoDB at `98.84.26.100` (us-east-1).
 
-Deploys two free-tier EC2 instances (App + MongoDB) with Terraform, driven by GitHub Actions.
+Deploys two free-tier EC2 instances (App + MongoDB) with Terraform, driven by GitHub Actions. Uses **S3 remote state** with DynamoDB locking so all operations (plan/apply/destroy) work consistently from any GitHub Actions runner.
 
 ```
 Developer → GitHub (push / PR)
    ├─ ci.yml         → tests (40) + frontend build           (push main/develop)
    ├─ deploy.yml     → terraform plan (PR) / apply|destroy    (provisions AWS)
-   └─ redeploy.yml   → SSH to App EC2, git pull + build + pm2 (push production)
+   │     └─ after apply → auto-updates EC2_APP_HOST secret → dispatches redeploy.yml
+   └─ redeploy.yml   → SSH to App EC2, git pull + build + pm2 + Newman test (push production)
 
 AWS (default VPC, us-east-1)
    ├─ EC2 #1 App      nginx :80 (React + /api proxy) · Node :5000 (PM2) · SG 22/80/443/5000/5173
-   └─ EC2 #2 MongoDB  mongod :27017 (auth) · SG 22 + 27017 from App SG only
+   ├─ EC2 #2 MongoDB  mongod :27017 (auth) · SG 22 + 27017 from App SG only
+   └─ S3 + DynamoDB   remote Terraform state (persistent across runners)
 ```
 
 ## Architecture
@@ -20,6 +22,7 @@ AWS (default VPC, us-east-1)
 - **App EC2** serves the built React app via nginx on port 80 and proxies `/api` to the Node API on port 5000 (kept alive by PM2 as `event-ticketing-api`).
 - **MongoDB EC2** runs MongoDB 7.0 with auth; port 27017 is reachable **only** from the app's security group.
 - Terraform injects MongoDB's **private IP** into the app server's `backend/.env` automatically.
+- **S3 remote state** (`event-ticketing-terraform-state`) + **DynamoDB lock table** (`event-ticketing-terraform-lock`) persist Terraform state across GitHub Actions runners. The bucket/table are auto-created by the workflow if missing.
 
 ---
 
@@ -27,52 +30,52 @@ AWS (default VPC, us-east-1)
 
 1. AWS account + IAM user with EC2/VPC permissions (programmatic access).
 2. EC2 **Key Pair** created in `us-east-1` (download the `.pem`).
-3. Terraform ≥ 1.6 and AWS CLI installed (only for the manual path).
-4. Repo pushed; the `github_repo` Terraform value matches your repo URL.
+3. 8 GitHub Secrets set on the repo (see README.md).
 
 ---
 
 ## Path A — GitHub CI/CD (recommended)
 
 ### 1. Add repository secrets
-`Settings → Secrets and variables → Actions`:
 
 | Secret | Purpose |
 |---|---|
-| `AWS_ACCESS_KEY_ID` | IAM access key (EC2/VPC perms) |
-| `AWS_SECRET_ACCESS_KEY` | IAM secret key |
-| `AWS_KEY_PAIR_NAME` | EC2 key pair name (SSH) |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | IAM user with EC2/VPC perms |
+| `AWS_KEY_PAIR_NAME` | EC2 key pair name (us-east-1) |
 | `MONGO_PASSWORD` | MongoDB user/admin password |
 | `JWT_SECRET` | Backend JWT signing secret |
-| `EC2_APP_HOST` | App EC2 public IP (for `redeploy.yml`) |
-| `EC2_SSH_KEY` | Private key contents for SSH into the app EC2 |
+| `EC2_APP_HOST` | Placeholder initially (auto-updated after apply) |
+| `EC2_SSH_KEY` | Private key (.pem contents) for SSH into the App EC2 |
+| `GH_PAT` | GitHub PAT with `repo` scope for API calls (update secrets, dispatch workflows) |
 
-### 2. Create the `production` environment
-`Settings → Environments → production` (add a required reviewer if you want an approval gate — the apply/destroy jobs use it).
+### 2. Provision (apply)
 
-### 3. Verify CI is green
-Push to `main` (or open a PR). `ci.yml` runs the 40 backend unit tests against a temporary MongoDB and builds the frontend.
+`Actions → AWS Infrastructure CI/CD → Run workflow → Branch = production → action = apply`.
 
-### 4. Review the plan
-Open a PR targeting `production`. `deploy.yml` runs `terraform plan` and posts it as a PR comment (2 EC2s + 2 security groups).
+The workflow:
+1. Creates S3 bucket + DynamoDB table (if missing)
+2. Imports existing tagged resources into S3 state (first S3 run)
+3. Runs `terraform apply` — provisions both EC2s (~3-5 min)
+4. Extracts `app_public_ip` and **auto-updates** `EC2_APP_HOST` secret
+5. **Auto-dispatches** `redeploy.yml` on production branch
 
-### 5. Provision (apply)
-`Actions → AWS Infrastructure CI/CD → Run workflow → action = apply`.
-Bootstrap then auto-installs MongoDB, Node 20, PM2, nginx; clones the repo; writes `.env`; runs `npm install` + `npm run seed`; starts the API under PM2; builds the frontend; configures the nginx reverse proxy. (~3–5 min.) Copy the **app public IP** from the run summary.
+### 3. Verify
 
-### 6. Ship updates (continuous deployment)
-Every push to `production` triggers `redeploy.yml`:
-
-```bash
-cd ~/app
-git fetch origin production && git reset --hard origin/production
-cd backend && npm install --production && cd ..
-cd frontend && npm install && VITE_API_URL=/api npm run build
-sudo cp -r dist/* /usr/share/nginx/html/ && cd ..
-pm2 restart event-ticketing-api
+```
+http://<app-public-ip>          # React frontend
+ssh -i ~/.ssh/<key>.pem ec2-user@<app-public-ip>
+pm2 status                      # event-ticketing-api = online
+sudo systemctl status nginx
 ```
 
-After the deploy, a **Newman smoke test** runs against `http://${EC2_APP_HOST}` (non-blocking). The `newman-report` is uploaded as a workflow artifact. Known collection test-script bugs (`const data` redeclaration, 401 on mutating endpoints from missing auth token propagation) cause test assertions to fail but do not block the deployment.
+### 4. Ship updates (continuous deployment)
+
+Every push to `production` triggers `redeploy.yml` → SSH + pull + build + PM2 restart + Newman smoke test.
+
+```bash
+git push origin main            # CI
+git push origin main:production # redeploy
+```
 
 ---
 
@@ -80,12 +83,10 @@ After the deploy, a **Newman smoke test** runs against `http://${EC2_APP_HOST}` 
 
 ```bash
 aws configure                      # us-east-1, json
-mv ~/Downloads/event-ticketing-key.pem ~/.ssh/ && chmod 400 ~/.ssh/event-ticketing-key.pem
-
 cd terraform/
 cat > terraform.tfvars <<EOF
 key_pair_name = "event-ticketing-key"
-github_repo   = "https://github.com/<you>/event-ticket.git"
+github_repo   = "https://github.com/irasiii/event-ticket_2.git"
 mongo_password = "<strong-password>"
 jwt_secret     = "<strong-secret>"
 environment    = "production"
@@ -99,38 +100,11 @@ terraform output summary   # IPs, SSH commands, URLs
 
 ---
 
-## Verify
-
-```bash
-# Browser
-http://<app-public-ip>          # React frontend (nginx :80)
-
-# App server
-ssh -i ~/.ssh/event-ticketing-key.pem ec2-user@<app-public-ip>
-pm2 status                      # event-ticketing-api = online
-sudo systemctl status nginx
-
-# MongoDB server
-ssh -i ~/.ssh/event-ticketing-key.pem ec2-user@<mongodb-public-ip>
-sudo systemctl status mongod
-```
-
-Run the Postman collection against `http://<app-public-ip>` to test every API.
-
----
-
 ## Tear down
 
-GitHub: `Actions → AWS Infrastructure CI/CD → Run workflow → action = destroy`. Or locally:
+GitHub: `Actions → AWS Infrastructure CI/CD → Run workflow → Branch = production → action = destroy`.
 
+Terraform finds managed resources via S3 state and destroys them. Or locally:
 ```bash
-cd terraform/ && terraform destroy   # type 'yes'
+cd terraform/ && terraform destroy
 ```
-
-Both instances are `t2.micro` (free tier). Stop them when idle to preserve free-tier hours.
-
----
-
-## Note — Terraform remote state
-
-Terraform uses an **S3 remote backend** (`event-ticketing-terraform-state`) with **DynamoDB lock** (`event-ticketing-terraform-lock`). State is persistent across all GitHub Actions runners, so `apply` and `destroy` both work from anywhere. The bucket and table are auto-created by the workflow if they don't exist.
