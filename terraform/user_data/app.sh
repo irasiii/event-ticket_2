@@ -66,6 +66,7 @@ ENVFILE
   sleep 8
   sudo -u ec2-user bash -lc "cd '$APP_DIR' && newman run postman/TicketHub.postman_collection.json \
       --env-var baseUrl=http://localhost:5000 \
+      --insecure \
       --reporters cli,htmlextra \
       --reporter-htmlextra-export '$APP_DIR/newman-report.html'" \
     || echo "Initial Newman test reported failures (non-fatal at boot)."

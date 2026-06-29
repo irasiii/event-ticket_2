@@ -74,6 +74,7 @@ jobs:
         run: |
           newman run "postman/TicketHub API.postman_collection.json" \
             --env-var "baseUrl=https://${{ secrets.EC2_APP_HOST }}" \
+            --insecure \
             --reporters cli,htmlextra \
             --reporter-htmlextra-export newman-report.html
 
