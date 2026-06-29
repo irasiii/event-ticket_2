@@ -253,7 +253,7 @@ jobs:
             echo ""
             echo "| Resource | Value |"
             echo "|---|---|"
-            echo "| App URL | http://${{ steps.app_ip.outputs.app_ip }} |"
+            echo "| App URL | https://${{ steps.app_ip.outputs.app_ip }} |"
             echo "| MongoDB IP | ${{ steps.mongodb_ip.outputs.mongodb_ip }} |"
             echo "| Terraform Backend | S3 ${{ env.TF_STATE_BUCKET }} + DynamoDB |"
             echo "| SSH | \`ssh -i <key>.pem ec2-user@${{ steps.app_ip.outputs.app_ip }}\` |"

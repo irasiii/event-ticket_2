@@ -15,9 +15,9 @@ Complete SDLC Assignment 2 for Event Ticket Booking System: 7+ design patterns, 
 ## Live State
 | Component | Value |
 |---|---|
-| App (React + API) | (torn down) |
-| MongoDB | (torn down) |
-| Terraform state | (torn down — S3 bucket + DynamoDB table deleted) |
+| App (React + API) | `https://35.168.110.181` (self-signed SSL) |
+| MongoDB | (private IP only, queried via Terraform) |
+| Terraform state | S3 `event-ticketing-terraform-state` + DynamoDB lock |
 | CI tests | 40/40 Mocha + Vite build (still runs on push) |
 | Newman tests | Fixed (let data + timestamp), blocking step in redeploy |
 

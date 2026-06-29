@@ -42,13 +42,13 @@ output "app_ssh_command" {
 }
 
 output "app_api_url" {
-  description = "URL of the Node.js API"
-  value       = "http://${aws_instance.app.public_ip}:5000"
+  description = "URL of the Node.js API (via nginx HTTPS proxy)"
+  value       = "https://${aws_instance.app.public_ip}/api"
 }
 
 output "app_frontend_url" {
-  description = "URL of the React frontend (served by nginx on port 80)"
-  value       = "http://${aws_instance.app.public_ip}"
+  description = "URL of the React frontend (served by nginx on port 443)"
+  value       = "https://${aws_instance.app.public_ip}"
 }
 
 output "summary" {
@@ -63,8 +63,8 @@ output "summary" {
   ╠══════════════════════════════════════════════════════════╣
   ║  App Server (Node.js + React)                            ║
   ║    Public IP  : ${aws_instance.app.public_ip}
-  ║    Frontend   : http://${aws_instance.app.public_ip}
-  ║    API        : http://${aws_instance.app.public_ip}:5000
+║    Frontend   : https://${aws_instance.app.public_ip}
+║    API        : https://${aws_instance.app.public_ip}/api
   ║    SSH        : ssh -i ~/.ssh/${var.key_pair_name}.pem ec2-user@${aws_instance.app.public_ip}
   ╚══════════════════════════════════════════════════════════╝
   EOT

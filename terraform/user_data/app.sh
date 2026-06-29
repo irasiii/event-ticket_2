@@ -84,11 +84,31 @@ FRONTENV
   cp -r "$FRONTEND_DIR/dist/"* /usr/share/nginx/html/
 fi
 
-# 9. Configure nginx reverse proxy
+# 9. Generate self-signed SSL certificate
+mkdir -p /etc/nginx/ssl
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/nginx/ssl/selfsigned.key \
+    -out /etc/nginx/ssl/selfsigned.crt \
+    -subj "/CN=event-ticketing/O=Event Ticketing/C=AU"
+chmod 600 /etc/nginx/ssl/selfsigned.key
+
+# 10. Configure nginx (HTTP→HTTPS redirect + reverse proxy over SSL)
 cat > /etc/nginx/conf.d/event-ticketing.conf << 'NGINXCFG'
+# HTTP → HTTPS redirect
 server {
     listen 80;
     server_name _;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS reverse proxy
+server {
+    listen 443 ssl;
+    server_name _;
+
+    ssl_certificate     /etc/nginx/ssl/selfsigned.crt;
+    ssl_certificate_key /etc/nginx/ssl/selfsigned.key;
+
     root /usr/share/nginx/html;
     index index.html;
 
