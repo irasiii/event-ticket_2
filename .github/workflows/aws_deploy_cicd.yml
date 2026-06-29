@@ -283,7 +283,29 @@ jobs:
             -d "{\"encrypted_value\": \"$ENCRYPTED\", \"key_id\": \"$KEY_ID\"}" \
             https://api.github.com/repos/irasiii/event-ticket_2/actions/secrets/EC2_APP_HOST
 
-      - name: Dispatch redeploy
+      - name: Wait for EC2 bootstrap to complete
+        env:
+          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          APP_IP="${{ steps.app_ip.outputs.app_ip }}"
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/ec2_key.pem
+          chmod 600 ~/.ssh/ec2_key.pem
+          echo "Waiting for EC2 at $APP_IP to finish user_data bootstrap..."
+          for i in $(seq 1 30); do
+            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+              -i ~/.ssh/ec2_key.pem ec2-user@"$APP_IP" \
+              "test -d /home/ec2-user/app && pm2 list 2>/dev/null | grep -q online" 2>/dev/null; then
+              echo "Bootstrap complete after ~$((i * 15))s"
+              exit 0
+            fi
+            echo "Attempt $i/30 — not ready yet, sleeping 15s..."
+            sleep 15
+          done
+          echo "EC2 bootstrap did not finish within ~7.5 min"
+          exit 1
+
+      - name: Dispatch redeploy (with smoke test)
         run: |
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
