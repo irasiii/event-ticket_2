@@ -2,6 +2,19 @@
 
 A full-stack event ticketing application deployed on AWS via GitHub Actions + Terraform CI/CD pipeline.
 
+## Live Deployment
+
+The app is currently deployed and accessible at:
+
+| Component | IP Address |
+|---|---|
+| App (React + API) | `http://18.232.51.83` |
+| MongoDB | `98.84.26.100` (private network to app only) |
+
+> These IPs change on every `terraform apply`. After a fresh provision, update the `EC2_APP_HOST` and `EC2_SSH_KEY` GitHub Secrets before the redeploy workflow works.
+
+---
+
 ## Architecture
 
 ```
@@ -97,7 +110,7 @@ Triggers **manually** via `workflow_dispatch`.
 - **Action: apply** — runs `terraform apply`, creates both EC2 instances from scratch
 - **Action: destroy** — runs `terraform destroy`, tears down all AWS resources
 
-> ⚠️ Only run `apply` on a clean AWS account (no existing instances/security groups from a previous run) because Terraform uses local state.
+> ⚠️ Only run `apply` on a clean AWS account (no existing instances/security groups from a previous run) because Terraform uses local state (no S3 backend). Security Group names use `random_id.suffix.hex` to avoid name collisions on re-apply.
 
 ### `redeploy.yml` — Deploy Code Changes
 Triggers automatically on every push to `production`, or manually via `workflow_dispatch`.
@@ -107,6 +120,9 @@ Triggers automatically on every push to `production`, or manually via `workflow_
 - Deletes and rebuilds the React frontend (clean install avoids platform binary issues)
 - Copies built files to Nginx web root
 - Restarts the Node.js backend via PM2
+- Runs **Newman smoke test** against the live API (non-blocking, uploads `newman-report` artifact)
+
+> ⚠️ The Newman step runs as an informational check. Known collection bugs (`const data` redeclaration, auth token not flowing to mutating endpoints) cause test assertion failures but do not block deployment.
 
 ---
 

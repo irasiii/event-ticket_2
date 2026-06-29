@@ -45,8 +45,6 @@ Complete SDLC Assignment 2 for Event Ticket Booking System: SRS, 7+ design patte
 | SCRUM-283 | Task documentation | Zunair |
 
 ## Next Steps
-1. Merge reviewed PRs: #9 → #5 → #11 (postman → code → docs)
-2. Team works through gap tasks
-3. Re-deploy AWS infra via Terraform
-4. Verify JIRA auto-link workflow
-5. Final deliverables (report, video, declaration)
+1. **All .md documentation updated** — README.md, DEPLOYMENT.md, PLAYBOOK.md, MERGE_GUIDE.md, terraform/README.md, AGENTS.md all reflect live IPs and current state.
+2. Consider fixing Postman collection test scripts (`const data` → `let data`, auth token propagation) for a green Newman smoke test.
+3. Final deliverables (report, video, declaration).

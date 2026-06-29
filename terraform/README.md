@@ -1,6 +1,8 @@
 # Event Ticketing — Terraform Infrastructure
 
-Provisions **2 free-tier EC2 instances** on AWS using Amazon Linux 2:
+**Current deployment:** App `18.232.51.83`, MongoDB `98.84.26.100` (us-east-1).
+
+Provisions **2 free-tier EC2 instances** on AWS using Amazon Linux 2023:
 
 | Instance | Role | Ports |
 |---|---|---|
@@ -56,13 +58,13 @@ terraform output summary
 ## What Gets Created
 
 ### EC2 1 — MongoDB Server
-- Amazon Linux 2, t2.micro (free tier)
+- Amazon Linux 2023, t2.micro (free tier)
 - MongoDB 7.0 installed and running
 - Authentication enabled with the credentials from `terraform.tfvars`
 - Port 27017 open **only to the app server** (not the public internet)
 
 ### EC2 2 — App Server
-- Amazon Linux 2, t2.micro (free tier)
+- Amazon Linux 2023, t2.micro (free tier)
 - **Node.js 20 LTS** + npm
 - **GitHub CLI** (`gh`) — run `gh auth login` after SSH-ing in
 - **PM2** — keeps the Node.js API running in the background
@@ -138,6 +140,8 @@ terraform destroy
 ```
 
 This removes both EC2 instances and their security groups. **Data will be lost.**
+
+> ⚠️ **Note on Terraform state:** State is stored locally (no S3 backend). If you run `terraform destroy` from a GitHub Actions runner, it starts with empty state and won't find your resources. Either run destroy **locally** from the same machine that ran `apply`, or use the `scripts/aws_teardown.py` cleanup script. Security Group names use `random_id.suffix.hex` to avoid name collisions on re-apply.
 
 ---
 

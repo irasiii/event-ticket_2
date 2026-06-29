@@ -1,5 +1,7 @@
 # TicketHub — AWS Deployment Guide
 
+**Current live deployment:** App at `http://18.232.51.83`, MongoDB at `98.84.26.100` (us-east-1).
+
 Deploys two free-tier EC2 instances (App + MongoDB) with Terraform, driven by GitHub Actions.
 
 ```
@@ -70,6 +72,8 @@ sudo cp -r dist/* /usr/share/nginx/html/ && cd ..
 pm2 restart event-ticketing-api
 ```
 
+After the deploy, a **Newman smoke test** runs against `http://${EC2_APP_HOST}` (non-blocking). The `newman-report` is uploaded as a workflow artifact. Known collection test-script bugs (`const data` redeclaration, 401 on mutating endpoints from missing auth token propagation) cause test assertions to fail but do not block the deployment.
+
 ---
 
 ## Path B — Manual Terraform
@@ -123,10 +127,16 @@ GitHub: `Actions → AWS Infrastructure CI/CD → Run workflow → action = dest
 cd terraform/ && terraform destroy   # type 'yes'
 ```
 
+> ⚠️ **`terraform destroy` from GitHub Actions WON'T work** because state is ephemeral (no S3 backend). Use the **AWS Console** (terminate EC2s → delete SGs) or the included Python cleanup script:
+> ```bash
+> python scripts/aws_teardown.py --region us-east-1          # dry-run
+> python scripts/aws_teardown.py --region us-east-1 --execute # actual
+> ```
+
 Both instances are `t2.micro` (free tier). Stop them when idle to preserve free-tier hours.
 
 ---
 
 ## Note — Terraform remote state
 
-State is stored locally, so a GitHub Actions runner starts with empty state each run. For a robust pipeline, add an **S3 backend + DynamoDB lock** to the `terraform {}` block so `apply`/`destroy` track the same resources. For a one-off demo, run `apply` and `destroy` consistently from the same place.
+Terraform state is **local (no S3 backend)**, so a GitHub Actions runner starts with empty state each run. `apply` creates fresh resources; `destroy` from a runner won't find old ones. For a robust pipeline, add an **S3 backend + DynamoDB lock** to the `terraform {}` block. For this project, use `terraform destroy` locally or the `scripts/aws_teardown.py` script.

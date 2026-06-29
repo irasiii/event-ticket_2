@@ -59,18 +59,8 @@ gh pr create --base production --head main --title "Release: assignment-2" --fil
 gh pr merge --merge
 ```
 
-## One-time reconciliation
-
-`main` is ahead of `production` by 13 commits and `production` ahead by 2. Before the first promotion, sync them:
-
-```bash
-git checkout main
-git merge origin/production    # resolve any conflicts
-git push origin main
-```
-
-Then `main` is a superset and future `main → production` PRs are clean.
-
 ## Pipeline flow used
 
 Lightweight **GitFlow / environment promotion**: `main` = Continuous Integration (tests + build gate via `ci.yml`); `production` = Continuous Deployment (app redeploy via `redeploy.yml`), with an infrastructure **plan on the PR** (`deploy.yml`) and a **manual Terraform apply** gate for provisioning.
+
+> **Note on main/production sync:** The branches have been reconciled. Future `main → production` PRs should be clean. Always verify `ci.yml` is green on `main` before promoting.
