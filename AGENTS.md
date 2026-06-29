@@ -15,7 +15,7 @@ Complete SDLC Assignment 2 for Event Ticket Booking System: 7+ design patterns, 
 ## Live State
 | Component | Value |
 |---|---|
-| App (React + API) | `https://34.239.164.53` (self-signed SSL) |
+| App (React + API) | `https://35.168.59.22` (self-signed SSL) |
 | MongoDB | (private IP only, queried via Terraform) |
 | Terraform state | S3 `event-ticketing-terraform-state` + DynamoDB lock |
 | CI tests | 40/40 Mocha + Vite build (still runs on push) |
@@ -24,7 +24,7 @@ Complete SDLC Assignment 2 for Event Ticket Booking System: 7+ design patterns, 
 ## Progress
 ### Done (this session — 2026-06-29)
 - **S3 backend** added to `terraform/main.tf` — bucket `event-ticketing-terraform-state` w/ versioning + DynamoDB lock table `event-ticketing-terraform-lock` created in AWS.
-- **`deploy.yml` completely rewritten:**
+- **`aws_deploy_cicd.yml` → `deploy.yml`:**
   - Auto-creates S3 bucket + DynamoDB table if missing (all 3 jobs: plan/apply/destroy)
   - Imports existing tagged EC2s + SGs into S3 state on first run
   - After `apply`: extracts `app_public_ip` → updates `EC2_APP_HOST` secret via GitHub API
