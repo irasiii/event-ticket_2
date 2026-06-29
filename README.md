@@ -110,7 +110,7 @@ Triggers **manually** via `workflow_dispatch`.
 - **Action: apply** — runs `terraform apply`, creates both EC2 instances from scratch
 - **Action: destroy** — runs `terraform destroy`, tears down all AWS resources
 
-> ⚠️ Only run `apply` on a clean AWS account (no existing instances/security groups from a previous run) because Terraform uses local state (no S3 backend). Security Group names use `random_id.suffix.hex` to avoid name collisions on re-apply.
+> Terraform uses **S3 remote state** (`event-ticketing-terraform-state`) with DynamoDB locking (`event-ticketing-terraform-lock`) — so `apply` and `destroy` work consistently from any GitHub Actions runner. Security Group names use `random_id.suffix.hex` to avoid name collisions on re-apply.
 
 ### `redeploy.yml` — Deploy Code Changes
 Triggers automatically on every push to `production`, or manually via `workflow_dispatch`.

@@ -10,6 +10,14 @@ terraform {
       version = "~> 3.6"
     }
   }
+
+  backend "s3" {
+    bucket         = "event-ticketing-terraform-state"
+    key            = "terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "event-ticketing-terraform-lock"
+  }
 }
 
 resource "random_id" "suffix" {

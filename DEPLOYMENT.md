@@ -127,16 +127,10 @@ GitHub: `Actions → AWS Infrastructure CI/CD → Run workflow → action = dest
 cd terraform/ && terraform destroy   # type 'yes'
 ```
 
-> ⚠️ **`terraform destroy` from GitHub Actions WON'T work** because state is ephemeral (no S3 backend). Use the **AWS Console** (terminate EC2s → delete SGs) or the included Python cleanup script:
-> ```bash
-> python scripts/aws_teardown.py --region us-east-1          # dry-run
-> python scripts/aws_teardown.py --region us-east-1 --execute # actual
-> ```
-
 Both instances are `t2.micro` (free tier). Stop them when idle to preserve free-tier hours.
 
 ---
 
 ## Note — Terraform remote state
 
-Terraform state is **local (no S3 backend)**, so a GitHub Actions runner starts with empty state each run. `apply` creates fresh resources; `destroy` from a runner won't find old ones. For a robust pipeline, add an **S3 backend + DynamoDB lock** to the `terraform {}` block. For this project, use `terraform destroy` locally or the `scripts/aws_teardown.py` script.
+Terraform uses an **S3 remote backend** (`event-ticketing-terraform-state`) with **DynamoDB lock** (`event-ticketing-terraform-lock`). State is persistent across all GitHub Actions runners, so `apply` and `destroy` both work from anywhere. The bucket and table are auto-created by the workflow if they don't exist.
