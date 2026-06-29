@@ -46,5 +46,5 @@ Complete SDLC Assignment 2 for Event Ticket Booking System: SRS, 7+ design patte
 
 ## Next Steps
 1. **All .md documentation updated** — README.md, DEPLOYMENT.md, PLAYBOOK.md, MERGE_GUIDE.md, terraform/README.md, AGENTS.md all reflect live IPs and current state.
-2. Consider fixing Postman collection test scripts (`const data` → `let data`, auth token propagation) for a green Newman smoke test.
+2. **Postman collection fixed** — `const data` → `let data` in all 7 test scripts, Register email uses `{{$timestamp}}` for idempotency. Pushed to production.
 3. Final deliverables (report, video, declaration).

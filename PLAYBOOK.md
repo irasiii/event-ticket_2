@@ -483,16 +483,15 @@ The Newman smoke test runs as a **non-blocking informational step** in `redeploy
 
 | Issue | Endpoints affected | Cause |
 |---|---|---|
-| `SyntaxError: Identifier 'data' has already been declared` | Get Users, Get Bookings | Test scripts use `const data` where `data` was already declared in a previous scope |
-| `401 Unauthorized` | Create Event, Create Booking, Delete Venue, etc. | Auth token from Login step not being propagated to subsequent requests in the runner |
+| `SyntaxError: Identifier 'data' has already been declared` | Login User, Login Admin, Create Category, Create Venue, Create Event, Create Booking, Admin > Users | Newman reuses the VM sandbox; `const data` crashes on second invocation. Fixed: changed all 7 to `let data`. |
+| `401 Unauthorized` | Create Event, Create Booking, Delete Venue, etc. | Caused by `const data` crash in Login scripts → `pm.environment.set("token", ...)` never runs. Fixed by the `let data` change above. |
 
 These are **Postman collection test-script bugs**, not infrastructure problems. The API itself works correctly (verified manually via browser and direct `curl`).
 
-### Fixing the collection
-To make Newman green, edit the Postman collection `postman/TicketHub API.postman_collection.json`:
-1. Replace `const data` with `let data` (or remove redeclared `const`) in all test scripts.
-2. Ensure the auth token variable is set in the Login response handler and referenced as `{{token}}` in the Authorization headers of other requests.
-3. Re-export and commit the fixed collection, then push to `production`.
+### Fix applied (2026-06-29)
+The collection has been fixed and pushed:
+1. All 7 `const data` → `let data` (Newman VM sandbox reuse fix)
+2. Register email uses `{{$timestamp}}` for idempotent re-runs
 
 ### Collection design rules (already applied)
 - **Order:** Categories + Venues are created **before** Events (Create event needs

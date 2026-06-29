@@ -24,7 +24,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"name\": \"Jane Tester\",\r\n  \"email\": \"jane@example.com\",\r\n  \"password\": \"pass1234\",\r\n  \"phone\": \"0400000000\"\r\n}",
+              "raw": "{\r\n  \"name\": \"Jane Tester\",\r\n  \"email\": \"jane.tester+{{$timestamp}}@example.com\",\r\n  \"password\": \"pass1234\",\r\n  \"phone\": \"0400000000\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -52,7 +52,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "const data = pm.response.json();\r",
+                  "let data = pm.response.json();\r",
                   "\r",
                   "pm.test(\"User login successful\", function () {\r",
                   "    pm.response.to.have.status(200);\r",
@@ -99,7 +99,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "const data = pm.response.json();\r",
+                  "let data = pm.response.json();\r",
                   "\r",
                   "pm.test(\"Admin login successful\", function () {\r",
                   "    pm.response.to.have.status(200);\r",
@@ -151,7 +151,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "const data = pm.response.json();\r",
+                  "let data = pm.response.json();\r",
                   "\r",
                   "pm.test(\"Create Category - 201 Created\", function () {\r",
                   "    pm.response.to.have.status(201);\r",
@@ -333,7 +333,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "const data = pm.response.json();\r",
+                  "let data = pm.response.json();\r",
                   "\r",
                   "pm.test(\"Create Venue - 201 Created\", function () {\r",
                   "    pm.response.to.have.status(201);\r",
@@ -524,7 +524,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "const data = pm.response.json();\r",
+                  "let data = pm.response.json();\r",
                   "\r",
                   "pm.test(\"Create Event - 201 Created\", function () {\r",
                   "    pm.response.to.have.status(201);\r",
@@ -706,7 +706,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "const data = pm.response.json();\r",
+                  "let data = pm.response.json();\r",
                   "\r",
                   "pm.test(\"Create Booking - 201 Created\", function () {\r",
                   "    pm.response.to.have.status(201);\r",
@@ -890,7 +890,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "const data = pm.response.json();\r",
+                  "let data = pm.response.json();\r",
                   "\r",
                   "pm.test(\"Admin Users - 200 OK\", function () {\r",
                   "    pm.response.to.have.status(200);\r",
