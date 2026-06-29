@@ -1,4 +1,4 @@
-$base = "https://35.168.59.22"
+$base = "https://98.92.159.143"
 
 # List events
 Invoke-WebRequest -Uri "$base/api/events" -SkipCertificateCheck
