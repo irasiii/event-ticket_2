@@ -252,6 +252,9 @@ jobs:
             echo '```'
           } >> $GITHUB_STEP_SUMMARY
 
+      - name: Install PyNaCl for secret encryption
+        run: pip install pynacl -q
+
       - name: Update EC2_APP_HOST secret
         run: |
           APP_IP="${{ steps.app_ip.outputs.app_ip }}"
