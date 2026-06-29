@@ -30,8 +30,13 @@ jobs:
 
             echo "==> Building frontend..."
             cd frontend
-            npm install
-            VITE_API_URL=/api npm run build
+            npm install --prefer-offline --no-audit --no-fund 2>/dev/null || true
+            VITE_API_URL=/api npm run build 2>&1 || {
+              echo "Frontend build failed — retrying with clean install..."
+              rm -rf node_modules
+              npm install --no-audit --no-fund
+              VITE_API_URL=/api npm run build
+            }
             sudo cp -r dist/* /usr/share/nginx/html/
             cd ..
 
