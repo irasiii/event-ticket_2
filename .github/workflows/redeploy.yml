@@ -73,7 +73,7 @@ jobs:
 
       - name: Run Postman collection against the live app (Newman)
         run: |
-          newman run postman/TicketHub.postman_collection.json \
+          newman run postman/TicketHub API.postman_collection.json \
             --env-var "baseUrl=http://${{ secrets.EC2_APP_HOST }}" \
             --reporters cli,htmlextra \
             --reporter-htmlextra-export newman-report.html
